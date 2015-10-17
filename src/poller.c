@@ -1,0 +1,113 @@
+#include<err.h>
+#include "poller.h"
+#include "logger.h"
+#include "dns_features.h"
+#include "dns_verdict.h"
+
+#define BUFSIZE 1024
+
+
+/*
+Callback function to register for packet processing in the handler
+Returns VERDICT on packet (see netfilter)
+*/
+static int callback(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg, struct nfq_data *nfa, void *data){
+	int id, rlen, verdict;
+	struct nfqnl_msg_packet_hdr *ph;
+	unsigned char *payload;
+	rlen = nfq_get_payload(nfa, &payload);
+	ph = nfq_get_msg_packet_hdr(nfa);
+	int phys_in_dev;
+	if (ph){
+		id = ntohl(ph->packet_id);
+		/*
+		Extract DNS features from packet
+		*/
+		dnsPacketInfo *info;
+		get_packet_info(payload, rlen, &info);
+		/*
+		Check if packet is incoming
+		*/
+		if((phys_in_dev=nfq_get_indev(nfa))){
+			verdict = handle_inpacket(info);
+		}else{
+			verdict = handle_outpacket(info);
+		}
+		return nfq_set_verdict(qh, id, verdict, rlen, payload);
+	}else{
+		err(1, "callback()");
+		return -1;
+	}	
+}
+
+/*
+*Initialize the queue and handler; open a raw socket
+*/
+int start_divert(struct nfq_handle **h, struct nfq_q_handle **qh, int port, void *cb){
+	int fd, flags;
+	*h = nfq_open();
+	if (!(*h)) {
+		err(1, "error during nfq_open()\n");
+	}
+	if(cb == NULL){
+		printf("unbinding existing nf_queue handler for AF_INET (if any)\n");
+		if (nfq_unbind_pf(*h, AF_INET) < 0) {
+			err(1, "error during nfq_unbind_pf()\n");
+		}
+
+		printf("binding nfnetlink_queue as nf_queue handler for AF_INET\n");
+		if (nfq_bind_pf(*h, AF_INET) < 0) {
+			err(1, "error during nfq_bind_pf()\n");
+		}
+	}
+	if(cb){
+		*qh = nfq_create_queue(*h,  port, cb, NULL);
+	}else{
+		*qh = nfq_create_queue(*h,  port, &callback, NULL);
+	}
+	if (!(*qh)) {
+		err(1, "error during nfq_create_queue()\n");
+	}
+	if (nfq_set_mode(*qh, NFQNL_COPY_PACKET, 0xffff) < 0) {
+		err(1, "can't set packet_copy mode\n");
+	}
+	fd = nfq_fd(*h);
+	flags = fcntl(fd, F_GETFL);
+	if (flags == -1){
+		err(1, "fcntl()");
+	}
+	if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1){
+		err(1, "fcntl()");
+	}
+	return fd; 
+}
+
+/*
+*Free the queue and handler.
+*/
+int end_divert(struct nfq_handle **h, struct nfq_q_handle **queue){
+	if(*queue){
+		nfq_destroy_queue(*queue);
+	}
+	if(*h){
+		return nfq_close(*h);
+	}
+	return -1;
+}
+
+/*
+Fetch next packet in queue and process it
+*/
+void process_next_packet(struct nfq_handle *h, int fd){
+	char buf[BUFSIZE];
+	int rv;
+	if((rv = recv(fd, buf, sizeof(buf), 0)) && rv >= 0) {	
+		nfq_handle_packet(h, buf, rv);
+		return;
+	}
+	if (errno == ENOBUFS) {
+		log_debug("Err: {ENOBUFS} ; Packet dropped.............\n");
+		return;
+	}
+}
+
