@@ -68,6 +68,10 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1
 
+/* Configure the library adaptively change thresholds based on moving averages
+   in the network flow. */
+#define MODEL_SYSTEM_FLOW_THRESHOLDS 1
+
 /* Define to the address where bug reports for this package should be sent. */
 #define PACKAGE_BUGREPORT "theogenebucuti@my.unt.edu"
 

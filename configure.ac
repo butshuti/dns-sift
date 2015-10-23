@@ -26,6 +26,9 @@ AC_TYPE_UINT32_T
 AC_FUNC_ALLOCA
 AC_CHECK_FUNCS([memmove memset strchr strndup strtol])
 
+AC_DEFINE([MODEL_SYSTEM_FLOW_THRESHOLDS], 1, [Configure the library adaptively change thresholds based on moving averages in the network flow.]) 
+
+
 # Generate binaries
 EXEC_NAME="./bin/dns_sift"
 LIB_NAME="./bin/dns_sift.so"

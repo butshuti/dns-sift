@@ -726,6 +726,7 @@ D["HAVE_MEMSET"]=" 1"
 D["HAVE_STRCHR"]=" 1"
 D["HAVE_STRNDUP"]=" 1"
 D["HAVE_STRTOL"]=" 1"
+D["MODEL_SYSTEM_FLOW_THRESHOLDS"]=" 1"
   for (key in D) D_is_set[key] = 1
   FS = ""
 }

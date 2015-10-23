@@ -3915,6 +3915,11 @@ fi
 done
 
 
+
+$as_echo "@%:@define MODEL_SYSTEM_FLOW_THRESHOLDS 1" >>confdefs.h
+ 
+
+
 # Generate binaries
 EXEC_NAME="./bin/dns_sift"
 LIB_NAME="./bin/dns_sift.so"

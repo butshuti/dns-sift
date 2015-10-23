@@ -57,6 +57,15 @@ enum rr_type {
     RR_TYPE_DLV = 32769
 };
 
+typedef enum {
+	parse_ok = 0,			/*Packet parsed successfully*/
+	parse_malformed = 1,	/*Extracting DNS info failed*/
+	parse_not_dns = 2,		/*not so DNS-looking*/
+	parse_incomplete = 4,	/*Packet end reached before parsing ended*/
+	parse_msg_unknown = 8,	/*Unknown opCode, RRtype, RRclass, or flags combination*/
+	parse_memory_error = 16	/*Memory allocation failed?*/
+} dns_parse_errors;
+
 /*
 This structure would describe a DNS question.
 However, for simplicity, a question is just like a normal RR with an empty rdata and pointless ttl.
@@ -109,6 +118,6 @@ typedef struct flow{
 /*
 Parse DNS packet from wire data
 */
-void dns_parse(const uint8_t *wiredata, uint32_t len, dns_packet **pkt);
+dns_parse_errors dns_parse(const uint8_t *wiredata, uint32_t len, dns_packet **pkt);
 
 #endif

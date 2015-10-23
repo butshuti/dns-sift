@@ -24,14 +24,16 @@ static int callback(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg, struct nfq_
 		Extract DNS features from packet
 		*/
 		dnsPacketInfo *info;
-		get_packet_info(payload, rlen, &info);
 		/*
 		Check if packet is incoming
 		*/
+		int packet_score;
 		if((phys_in_dev=nfq_get_indev(nfa))){
-			verdict = handle_inpacket(info);
+			packet_score = classify_packet(payload, rlen, &info, IN);
+			verdict = handle_inpacket(info, packet_score);
 		}else{
-			verdict = handle_outpacket(info);
+			packet_score = classify_packet(payload, rlen, &info, OUT);
+			verdict = handle_outpacket(info, packet_score);
 		}
 		return nfq_set_verdict(qh, id, verdict, rlen, payload);
 	}else{

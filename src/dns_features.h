@@ -17,73 +17,106 @@ typedef enum {
 } QTYPE;
 
 typedef enum {
-    TRUE = 1,
-    FALSE = 0
-} BOOL;
+    SCORE_NORMAL = -3,
+    SCORE_OUTSTANDING = 1,
+    SCORE_FLAGGED = 3
+} PACKET_SCORE;
+
+typedef enum {IN, OUT} DIRECTION;
 
 typedef enum {
-    OUT, IN
-} direction;
+	SOURCE_OK = 0,			/*Nothing abnormal*/
+	SOURCE_PORT_BOUND,		/*All queries originating from the same port*/
+	SOURCE_IP_SPOOFED		/*Sending query with a fake srcIP*/
+} SRC_PATTERN;
 
 typedef enum {
-    NEW,        /*Previously unseen*/
-    FREQUENT,   /*Seen more frequently*/
-    POPULAR,    /*Known service endpoint (servers, search engine, proxy,...)*/
-    BLACK,      /*Explicitly blacklisted*/
-    NEGATIVE    /*Possibly tainted*/
-} REPUTATION_SCORE;
+	SERVER_SYS_CONF = 0,	/*Server configured locally (e.g. resolv.conf)*/
+	SERVER_BLACK,			/*Query sent to blacklisted IP address*/
+	SERVER_UNKNOWN			/*Nameserver not in configuration, but nothing else known*/
+} DST_PATTERN;
+
+//typedef enum {
+//	PERCENT_RESOLVED_SLDS,	/*Estimation of how much likely this is a legitimate nameserver:
+//							% second-level domains queried @this server by this client*/
+//	PERCENT_DOMAIN_PORT_TRAFFIC,
+//	
+//} DOMAIN_PORT_PATTERN;
 
 typedef enum {
-    ENCODING_STANDARD = 0,  /*Fullsense cleartext*/
-    ENCODING_COMPRESSED, /*Compressed*/
-    ENCODING_BASE64,    /*Or alternative acceptable encoding*/
-    ENCODING_CRYPTO,    /*Successfully parse as either KEY, SIG, ...*/
-    ENCODING_UNKNOWN    /*Obscure/unknown encoding*/
-} ENCODING_TYPE;
+	W,
+	E
+} DOMAIN_LABELS_PATTERN;
 
 typedef enum {
-    PENDING,        /*Not yet seen/analyzed*/
-    NORMAL,         /*Does not stand out*/
-    BADFORMAT,      /*Malformatted reply*/
-    PREDICTABLE,    /*Either repeatedly the same or negative*/
-    IRRELEVANT      /*Same reply for too many different requests?*/
-} REPLY_PATTERN_CATEGORY;
+	TTL_OK = 0,				/*Reasonable TTL in responses*/
+	TTL_TOO_LOW,			/*Abnormally low TTL in responses*/
+	TTL_TOO_HIGH			/*Abnormally high TTL in responses*/
+} TTL_PATTERN;
 
-typedef struct {
-    uint32_t packet_len;
-    uint32_t protocol;
-    uint32_t ttl;
-    struct in_addr source, dest;
-    unsigned short int sport, dport;
-    char *qname, *cname, *dname, *ns;
-    uint32_t flags;
-    QTYPE qtype;
-} dnsPacketInfo;
+typedef enum {
+	REQUEST_OK = 0,			/*Nothing abnormal*/
+	REQUEST_TOO_LARGE,		/*Query larger than general*/
+	REQUEST_WITH_DATA		/*Data in non-Question sections of the query*/
+} QUERY_PATTERN;
+
+typedef enum {
+	ANSWER_OK = 0,			/*No particularity*/
+	ANSWER_TOO_LARGE,		/*Answer larger than generally observed*/
+	ANSWER_TOO_UNIFORM		/*Answers consistently uniform ([mal]format, size, errors, rtt)*/
+} REPLY_PATTERN;
+
+typedef enum {
+	DNS_OK = 0,				/*Packet successfully parsed as DNS*/
+	DNS_PACKET_MALFORMED,	/*Malformed packet (incomplete packet, unknown RRtype/class, incompatible flags, unknown opcode)*/
+	DNS_NOT_DNS				/*Maybe just raw IP data sent to the DNS port (like raw UDP...)*/
+} PACKET_PATTERN;
+
+typedef enum {
+	LABELS_OK = 0,			/*Normal-looking*/
+	LABELS_TOO_LARGE,		/*Too long label*/
+	LABELS_TOO_UNIFORM		/*Labels too uniform (length, pre/suffixes, number, readability)*/
+} QNAME_PATTERN;
 
 #pragma pack(push)
-#pragma pack(1)     
+#pragma pack(1) 
+/*Feature byte*/
 typedef struct {
-    uint32_t ttl;                               /*How large TTL in the reply*/
-    uint16_t cname_len,                         /*Length of the query name*/
-    labels_count,                               /*Number of labels in qname*/
-    domain_freq,                                /*Frequency domain.tld was seen*/
-    domain_variations,                          /*Variance in qname prefixes to domain.tld*/
-    avg_request_size,                           /*Size of query packet*/
-    avg_reply_size,                             /*Size of reply packet*/
-    query_reply_size_ratio,                     /*just that!*/
-    flags,                                      /*DNS header flags*/
-    qname_entropy,                              /*What moon language is the qname?!*/
-    mean_rtt;                                    /*just that!*/
-    REPUTATION_SCORE reputation_score : 4;          /*see above!*/
-    REPLY_PATTERN_CATEGORY answer_pattern : 4;      /*In correlation with observed patterns for the same domain queries*/  
-    ENCODING_TYPE encoding_type : 3;                /*Tunnels will probably have a weird encoding*/
-    BOOL resolv_conf_ns : 1,                        /*Sent to NS configured in resolv.conf?*/
-        ns_badflag : 1,                             /*Sent to a badly-reputed NS?*/
-        qname_badflag : 1,                          /*Querying for a badlooking domain?*/
-        reply_badflag : 1,                          /*Answer pointing to tainted IPs?*/
-        spoofed_src : 1;                            /*Is src_ip our IP?*/
-} dnsFeatureVec;
+	unsigned int f_code : 2; 	/*feature code*/
+	unsigned int f_range : 3;	/*feature range: capturing continuity in a discrete variable*/
+	unsigned int uniqueness : 3; /* overflowing <<2 of how many different connections exhibited the same pattern*/
+} feature;
 #pragma pack(pop)
 
-void get_packet_info(const uint8_t *data, size_t rlen, dnsPacketInfo **pkt_info);
+/*DNS stream feature vector*/
+typedef struct {
+	feature src_patt;
+	feature dst_info;
+	feature packet_patt;
+	feature query_patt;
+	feature reply_patt;
+	feature ttl_patt;
+	feature qname_patt;
+} pattern;
+
+/*
+Packet info: srcIP and dstIP used for a connection key;
+pattern used to classify packets observed in the transaction/connection
+*/
+typedef struct {
+    struct in_addr source, dest;
+    pattern *patt;
+} dnsPacketInfo;
+
+/*Connection entry*/
+typedef struct {
+	uint16_t id;	/*Current transaction id*/
+	uint16_t port;	/*Current src port*/
+	uint16_t id_count; /*Number of transactions with same id*/
+	uint16_t src_port_count; /*Number of transactions with same src port*/
+	uint32_t transaction_count;	/*Number of transactions for the particular (srcPi, dstIP) pair*/
+	pattern patt;	/*Adaptive pattern feature vector for the particular (srcPi, dstIP) pair*/
+} dnsTransaction;
+
+PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **pkt_info, DIRECTION drtcn);
 #endif
