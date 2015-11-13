@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include "logger.h"
 #include "dns_features.h"
+#include "dns_policies.h"
 #include "dns_parse.h"
 #include "routing.h"
 
@@ -33,14 +34,14 @@ static struct hsearch_data *high_level_domains_table = NULL;
 void dump(const unsigned char *data_buffer, const unsigned int length);
 void dump_ascii(const unsigned char *data_buffer, const unsigned int length);
 void print_pattern(const pattern*);
-void extract_features(const dns_packet *pkt, pattern *pat);
+void extract_features(const dns_packet *pkt, const unsigned int length, pattern *pat);
 void print_pattern_point(const pattern *pat, FILE *fp);
 void print_feature(const char *label, const feature ft);
 void adapt_feature(const feature *prev, feature *cur);
 
-extern void model_ttl_feature(uint32_t ttl, feature *ft);
+extern void model_ttl_feature(uint32_t ttl, char *domain, feature *ft);
 extern void model_packet_feature(const dns_packet *pkt, feature *ft);
-extern void model_query_feature(const dns_packet *pkt, feature *ft);
+extern void model_query_feature(const dns_packet *pkt, const unsigned int length, feature *ft);
 extern void model_reply_feature(const dns_packet *pkt, feature *ft);
 extern void model_src_feature(const dns_packet *pkt, feature *ft);
 extern void model_dst_feature(const dns_packet *pkt, feature *ft);
@@ -48,7 +49,7 @@ extern void model_qname_feature(const char *qname, feature *ft);
 extern PACKET_SCORE classify_pattern(const pattern *pat);
 
 /*
-Extracts packet details
+Extracts details from IP packet (assumes Ethernet header stripped off)
 */
 PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **pkt_info, DIRECTION drctn)
 {
@@ -123,11 +124,16 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
     if(err_code != parse_ok){
         	switch(err_code){
         		case parse_malformed: case parse_incomplete: case parse_memory_error:
-        			cur_t->patt.packet_patt.f_code = DNS_PACKET_MALFORMED;
+        			{
+        				cur_t->patt.packet_patt.f_code = DNS_PACKET_MALFORMED;
+        			}
         			break;
         		default:
         			cur_t->patt.packet_patt.f_code = DNS_NOT_DNS;
         	}
+        	char domain[255];
+			snprintf(domain, 255, "%d.%d.%d.INVALID", dst_ip.s_addr, dst_ip.s_addr, src_ip.s_addr);
+			model_qname_feature(domain, &(cur_t->patt.qname_patt));
     }else{
     	cur_t->patt.packet_patt.f_code = DNS_OK;
     }
@@ -135,12 +141,31 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
     	fp = fopen("datapoints.csv", "a+");
     }
     if(pkt == NULL){
-    	errx(-1, "Packet is invalid!");    	 
+    	cur_t->patt.packet_patt.f_code = DNS_NOT_DNS;
+    	//errx(-1, "Packet is invalid!");    	 
     }   
-    extract_features(pkt, &(cur_t->patt));
-    if((drctn == OUT) && !is_local_ip(src_ip.s_addr)){
-    	cur_t->patt.src_patt.f_code = SOURCE_IP_SPOOFED;
+    if(cur_t->patt.packet_patt.f_code == DNS_OK){
+    	extract_features(pkt, rlen, &(cur_t->patt));
     }
+    if((drctn == OUT) && !is_local_sa((struct sockaddr*)&src_ip)){
+    	cur_t->patt.src_patt.f_code = SOURCE_IP_SPOOFED;
+    }else{
+    	uint32_t upstream_addr;
+    	if(drctn == OUT){
+    		upstream_addr = dst_ip.s_addr;
+    	}else{
+    		upstream_addr = src_ip.s_addr;
+    	}
+    	if(is_configured_upstream(upstream_addr)){
+    	cur_t->patt.dst_info.f_code = SERVER_SYS_CONF;
+		}else if(is_black_upstream(upstream_addr)){
+			cur_t->patt.dst_info.f_code = SERVER_BLACK;
+			cur_t->patt.dst_info.f_range = upstream_score(dst_ip.s_addr);
+		}else{
+			cur_t->patt.dst_info.f_code = SERVER_UNKNOWN;
+			cur_t->patt.dst_info.f_range = upstream_score(dst_ip.s_addr);
+		}
+    }    
     char key[32];
     if(0 > snprintf(key, sizeof(key), "key%u", (drctn == IN ? src_ip.s_addr : dst_ip.s_addr))){//(src_ip.s_addr + dst_ip.s_addr) ^ (src_ip.s_addr | src_ip.s_addr))){
     	err(-1, "Failed to create key for %d -> %d connection:", src_ip.s_addr, dst_ip.s_addr);
@@ -180,6 +205,7 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
     	if((cur_t->transaction_count > 1) && ((cur_t->src_port_count > 5) || (cur_t->id_count > 10)) && t->patt.src_patt.f_code == SOURCE_OK){
     		cur_t->patt.src_patt.f_code = SOURCE_PORT_BOUND;
     	}
+    	cur_t->patt.packet_patt.f_range++;
     }else{
     	cur_t->transaction_count = 0;
     	cur_t->id_count = 1;
@@ -191,7 +217,7 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
 	}else if(0 == hsearch_r(e, ENTER, &ep, connections_table)){
 		err(1, "Failed updating connections table: ");
 	}    
-	if(t != NULL){
+	if(cur_t->patt.packet_patt.f_code == DNS_OK && t != NULL){
 		adapt_feature(&(t->patt.src_patt), &(cur_t->patt.src_patt));
 		adapt_feature(&(t->patt.dst_info), &(cur_t->patt.dst_info));
 		adapt_feature(&(t->patt.query_patt), &(cur_t->patt.query_patt));
@@ -199,7 +225,7 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
 		adapt_feature(&(t->patt.qname_patt), &(cur_t->patt.qname_patt));
 		adapt_feature(&(t->patt.ttl_patt), &(cur_t->patt.ttl_patt));
 		adapt_feature(&(t->patt.packet_patt), &(cur_t->patt.packet_patt));
-	}
+	} 
 	UNUSED_PARAM(dst_port);
 	//if(pkt->answers == 0)
 		print_pattern_point(&(cur_t->patt), fp);
@@ -277,11 +303,11 @@ void print_feature(const char *label, const feature ft){
 
 void feature_to_point(const feature ft, uint64_t *arr, uint32_t idx){
 	arr[0] |= ((((uint16_t)ft.f_code) << 5) | (((uint16_t)ft.f_range)<<3) | ft.uniqueness) << idx ;
-	arr[1] |= arr[0];// - ((1+ft.f_range) / (1+ft.uniqueness));
+	arr[1] |= arr[0] - ((1+ft.f_range) / (1+ft.uniqueness));
 }
 
 void print_pattern_point(const pattern *pat, FILE *fp){
-	/*uint64_t arr[] = {0, 0};
+	uint64_t arr[] = {0, 0};
 	feature_to_point(pat->src_patt, arr, 6);
 	feature_to_point(pat->dst_info, arr, 5);
 	feature_to_point(pat->packet_patt, arr, 4);
@@ -290,7 +316,7 @@ void print_pattern_point(const pattern *pat, FILE *fp){
 	feature_to_point(pat->ttl_patt, arr, 1);
 	feature_to_point(pat->qname_patt, arr, 0);
 	fprintf(fp, "%ld, %ld\n", arr[0], arr[1]);
-	//printf("%ld, %ld\n", arr[0], arr[1]);*/
+	//printf("%ld, %ld\n", arr[0], arr[1]);
 	print_pattern(pat);
 }
 
@@ -306,16 +332,16 @@ void print_pattern(const pattern *pat){
 	printf(">\n");
 }
 
-void extract_features(const dns_packet *pkt, pattern *pat){
+void extract_features(const dns_packet *pkt, const unsigned int length, pattern *pat){
 	model_packet_feature(pkt, &(pat->packet_patt));
 	model_src_feature(pkt, &(pat->src_patt));
 	model_dst_feature(pkt, &(pat->dst_info));
 	if(pkt->answers != NULL){
 		uint32_t ttl = pkt->answers->ttl;
-		model_ttl_feature(ttl, &(pat->ttl_patt));
+		model_ttl_feature(ttl, pkt->questions->name, &(pat->ttl_patt));
 		model_reply_feature(pkt, &(pat->reply_patt));
 	}else{
-		model_query_feature(pkt, &(pat->query_patt));
+		model_query_feature(pkt, length, &(pat->query_patt));
 		model_qname_feature(pkt->questions->name, &(pat->qname_patt));
 	}
 	

@@ -36,13 +36,6 @@ typedef enum {
 	SERVER_UNKNOWN			/*Nameserver not in configuration, but nothing else known*/
 } DST_PATTERN;
 
-//typedef enum {
-//	PERCENT_RESOLVED_SLDS,	/*Estimation of how much likely this is a legitimate nameserver:
-//							% second-level domains queried @this server by this client*/
-//	PERCENT_DOMAIN_PORT_TRAFFIC,
-//	
-//} DOMAIN_PORT_PATTERN;
-
 typedef enum {
 	W,
 	E
@@ -75,16 +68,32 @@ typedef enum {
 typedef enum {
 	LABELS_OK = 0,			/*Normal-looking*/
 	LABELS_TOO_LARGE,		/*Too long label*/
+	DOMAIN_HIGH_RATE,
+	LABELS_STRANGE_ENCODING,
 	LABELS_TOO_UNIFORM		/*Labels too uniform (length, pre/suffixes, number, readability)*/
 } QNAME_PATTERN;
+
+typedef struct {
+	time_t refresh;
+	uint8_t query_avg_rate;		/*num queries per minute*/
+	uint8_t query_rate;
+	uint8_t len_avg;				/*qname length*/
+	uint8_t nonlc_avg_rate; /*Digits and uppercase chars*/
+	uint8_t query_rate_self_variation;
+	uint8_t len_self_variation;
+	uint8_t nonlc_rate_self_variation;
+	uint8_t query_rate_global_variation;
+	uint8_t len_global_variation;
+	uint8_t nonlc_rate_global_variation;
+} domain_history;
 
 #pragma pack(push)
 #pragma pack(1) 
 /*Feature byte*/
 typedef struct {
-	unsigned int f_code : 2; 	/*feature code*/
+	unsigned int f_code : 3; 	/*feature code*/
 	unsigned int f_range : 3;	/*feature range: capturing continuity in a discrete variable*/
-	unsigned int uniqueness : 3; /* overflowing <<2 of how many different connections exhibited the same pattern*/
+	unsigned int uniqueness : 2; /* overflowing <<2 of how many different connections exhibited the same pattern*/
 } feature;
 #pragma pack(pop)
 

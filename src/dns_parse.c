@@ -10,6 +10,9 @@
 
 //#define stderr_log_debug(args...) fprintf(stderr, args)
 #define stderr_log_debug(args...)
+#define MAX_PKT_LEN 1492
+
+extern void reverse(char*);
 
 /*
 Read a DNS name from a packet.
@@ -18,12 +21,16 @@ Parameters: packet, msg_start(index of first byte of msg ID), len (length of pac
 The allocated ret_name points to a memory that should be explicitly deallocated.
 Returns a DNS parse error code
 */
-char *parse_rdata(const uint8_t *packet, const uint32_t msg_start, uint32_t len, uint32_t *pos, uint32_t maxlen, dns_parse_errors *err_code)
+char *parse_rdata(const uint8_t *packet, const uint32_t msg_start, const uint32_t len, uint32_t *pos, const uint32_t maxlen, dns_parse_errors *err_code)
 {
     if(*pos >= len)
     {
         stderr_log_debug("dns_parse::parse_rdata(): will not read after packet boundary!\n");
         *err_code = parse_incomplete;
+        return NULL;
+    }else if(maxlen > MAX_PKT_LEN){
+    	stderr_log_debug("dns_parse::parse_rdata(): packet larger than MTU!\n");
+        *err_code = parse_malformed;
         return NULL;
     }
     /*Now parse the name and update the position*/
@@ -131,6 +138,7 @@ dns_parse_errors parse_question(const uint8_t *packet, uint32_t len, uint32_t *p
     }
     dns_parse_errors ret = parse_msg_unknown;
     (*question)->name = parse_rdata(packet, 0, len, pos, MAX_NAME_LENGTH, &ret);
+    reverse((*question)->name);
     if(ret != parse_ok){
     	free(*question);
     	return ret;
@@ -256,6 +264,10 @@ dns_parse_errors dns_parse(const uint8_t *wiredata, uint32_t len, dns_packet **p
     }
     (*pkt)->opt_flags = 0; /*To be filled from the OPT-pseudorecord's ttl*/
     (*pkt)->header = (dns_hdr*)wiredata;
+    /*Rejecting queries qith multiple questions for now.*/
+	if(ntohs((*pkt)->header->qdcount) > 1){
+    	return parse_malformed;
+    }
     uint32_t pos = sizeof(dns_hdr);
     //stderr_log_debug("\n================ID: 0x%02x ; Questions: %hu ; Answers: %hu ; Authority: %hu ; Additional: %hu =====================\n", 
     //        ntohs((*pkt)->header->id), ntohs((*pkt)->header->qdcount), ntohs((*pkt)->header->ancount), ntohs((*pkt)->header->nscount), ntohs((*pkt)->header->arcount));
