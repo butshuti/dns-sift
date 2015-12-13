@@ -161,7 +161,6 @@ void model_qname_feature(const char *qname, feature *ft){
 	domain_history *history;
 	get_domain_history(qname, &history);
 	if(history != NULL){
-		printf("RATE<%s>: %d (%d) / %f\n", qname, history->query_rate, history->len_self_variation, avg_flow_len * 1.5);
 		if(history->len_avg > (avg_flow_len * 1.5)){
 			ft->f_code = LABELS_TOO_LARGE;
 			ft->f_range = 0x07 & (((int)((history->len_avg * 1.5)/ avg_flow_len))<<1);

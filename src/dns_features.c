@@ -301,13 +301,18 @@ void print_feature(const char *label, const feature ft){
 	printf("%s:%d|%d|%d, ", label, ft.f_code, ft.f_range, ft.uniqueness);
 }
 
-void feature_to_point(const feature ft, uint64_t *arr, uint32_t idx){
+/*void feature_to_point(const feature ft, uint64_t *arr, uint32_t idx){
 	arr[0] |= ((((uint16_t)ft.f_code) << 5) | (((uint16_t)ft.f_range)<<3) | ft.uniqueness) << idx ;
 	arr[1] |= arr[0] - ((1+ft.f_range) / (1+ft.uniqueness));
+}*/
+
+void feature_to_point(const feature ft, uint64_t *arr, uint32_t idx){
+	arr[idx] |= ((((uint16_t)ft.f_code) << 5) | (((uint16_t)ft.f_range)<<3) | ft.uniqueness);
+	//arr[1] |= arr[0] - ((1+ft.f_range) / (1+ft.uniqueness));
 }
 
 void print_pattern_point(const pattern *pat, FILE *fp){
-	uint64_t arr[] = {0, 0};
+	uint64_t arr[] = {0, 0, 0, 0, 0, 0, 0};
 	feature_to_point(pat->src_patt, arr, 6);
 	feature_to_point(pat->dst_info, arr, 5);
 	feature_to_point(pat->packet_patt, arr, 4);
@@ -315,7 +320,7 @@ void print_pattern_point(const pattern *pat, FILE *fp){
 	feature_to_point(pat->reply_patt, arr, 2);
 	feature_to_point(pat->ttl_patt, arr, 1);
 	feature_to_point(pat->qname_patt, arr, 0);
-	fprintf(fp, "%ld, %ld\n", arr[0], arr[1]);
+	fprintf(fp, "%ld, %ld, %ld, %ld, %ld, %ld, %ld\n", arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], arr[6]);
 	//printf("%ld, %ld\n", arr[0], arr[1]);
 	print_pattern(pat);
 }
