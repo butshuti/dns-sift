@@ -13,7 +13,7 @@
 #define _GNU_SOURCE
 #define __USE_GNU
 #include <search.h>
-#include "../config.h"
+#include "../../config.h"
 #include "dns_parse.h"
 #include "logger.h"
 #include "dns_features.h"

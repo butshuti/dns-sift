@@ -9,7 +9,7 @@
 
 extern int log_level;
 
-#include "../config.h"
+#include "../../config.h"
 
 /*
 *TODO: What if syslog is unavailable?

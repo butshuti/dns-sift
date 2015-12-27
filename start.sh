@@ -32,6 +32,6 @@ reset
 trap end_divert 2
 start_divert
 #while :; do sleep 100; done
-gdb ./bin/dns_sift
+./bin/dns_sift
 end_divert
 
