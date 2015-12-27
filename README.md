@@ -32,4 +32,4 @@ Running the app supposes the existence of a training set of normal DNS traffic, 
 
 ### Who do I talk to? ###
 
-* Research team: [http://www.logix.rw/labs](Logix Labs).
+* Research team: [Logix Labs](http://logix.rw/labs).
