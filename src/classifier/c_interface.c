@@ -8,8 +8,9 @@ PyObject *pyListFromCArray(int array[], size_t size); //forward
 
 int train()
 {
+	fprintf(stderr, "c_interface: Training starting.\n");
 	/* Initialize the Python interpreter.  Required. */
-    Py_Initialize();
+    Py_InitializeEx(0);
     /* Define sys.argv.  
        If the third argument is true, sys.path is modified to include
        either the directory containing the script named by argv[0], or
@@ -19,17 +20,12 @@ int train()
        directory (say, a file named os.py) that your application would
        then import and run.
     */
-    fprintf(stderr, "Demo warning: Adding current working directory to sys.path. Note: This can be dangerous as it is vulnerable to malicious injection if the directory is controlled by someone untrusted.\n");
+    /*fprintf(stderr, "Demo warning: Adding current working directory to sys.path. Note: This can be dangerous as it is vulnerable to malicious injection if the directory is controlled by someone untrusted.\n");
     extern char *__progname;
     char* argv[] = {__progname};
-    PySys_SetArgvEx(1, argv, 1);
-    PyObject* moduleString = PyString_FromString((char*)"classifier_C_interface");
+    PySys_SetArgvEx(1, argv, 0);*/
+    PyObject* moduleString = PyString_FromString((char*)"dnssift.classifier");
     PyObject* classifier_module = PyImport_Import(moduleString);
-    if(classifier_module == NULL)
-    {
-    	PyErr_Print();
-    	exit(-1);
-    }
     PyObject* trainFunction = PyObject_GetAttrString(classifier_module, (char*)"train");
     if(trainFunction == NULL)
     {
@@ -40,14 +36,18 @@ int train()
     if(classifyFunction == NULL)
     {
     	PyErr_Print();
+    	Py_CLEAR(trainFunction);
     	exit(-1);
     }
     PyObject* temp = PyObject_CallObject(trainFunction, NULL);
     if(temp == NULL){
-    	return 0;
+    	PyErr_Print();
+    	Py_CLEAR(trainFunction);
+    	Py_CLEAR(classifyFunction);
+    	exit(-1);
     }
-    Py_DECREF(temp);
-    fprintf(stderr, "Training ended.\n");
+    Py_CLEAR(temp);
+    fprintf(stderr, "c_interface: Training ending?: <%s>.\n", Py_IsInitialized() ? "TRUE" : "FALSE");
     return classifyFunction != NULL;
 }
 
@@ -57,17 +57,17 @@ int classify(int arr[], int size)
 		fprintf(stderr, "classifyFunction is NULL: classifier not trained.\n");
 		exit(-1);
 	}
-	PyObject* py_arr = pyListFromCArray(arr, 7);
+	PyObject* py_arr = pyListFromCArray(arr, size);
 	PyObject *arglist = PyTuple_Pack(1, py_arr);
 	PyObject* retObj = PyObject_CallObject(classifyFunction, arglist);
 	int ret = PyInt_AsLong(retObj);
-	Py_DECREF(py_arr);
-	Py_DECREF(arglist);
-	Py_DECREF(retObj);
+	Py_CLEAR(py_arr);
+	Py_CLEAR(arglist);
+	Py_CLEAR(retObj);
 	return ret;
 }
 
-main(int argc, char **argv)
+Obslt_main(int argc, char **argv)
 {
 	int arr[] = {0, 1, 1, 81, 1, 1, 1}, arr2[] = {0, 3, 3, 3, 3, 3, 3}, 
 		arr3[] = {32, 0, 0, 0, 40, 64, 32}, arr4[] = {48, 0, 0, 0, 40, 64, 0};
