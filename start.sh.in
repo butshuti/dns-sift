@@ -32,6 +32,6 @@ reset
 trap end_divert 2
 start_divert
 #while :; do sleep 100; done
-@exec_name@
+./bin/@package_name@/@exec_cmd@
 end_divert
 
