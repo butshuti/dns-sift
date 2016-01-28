@@ -1,0 +1,7 @@
+from distutils.core import setup
+setup(name='@package_name@', version='1.0', 
+	packages=['@package_name@', '@package_name@.py', '@package_name@.data', '@package_name@.data.dns_tunneling'],
+	package_data={
+	'@package_name@.data.dns_tunneling':['*']	#CSV files for training the classifier
+	},
+	)
