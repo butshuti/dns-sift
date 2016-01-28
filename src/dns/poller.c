@@ -1,4 +1,4 @@
-#include<err.h>
+#include <err.h>
 #include "poller.h"
 #include "logger.h"
 #include "dns_features.h"
@@ -46,22 +46,23 @@ static int callback(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg, struct nfq_
 *Initialize the queue and handler; open a raw socket
 */
 int start_divert(struct nfq_handle **h, struct nfq_q_handle **qh, int port, void *cb){
-	int fd, flags;
+	int fd;
 	*h = nfq_open();
 	if (!(*h)) {
 		err(1, "error during nfq_open()\n");
 	}
 	if(cb == NULL){
-		printf("unbinding existing nf_queue handler for AF_INET (if any)\n");
+		log_info("unbinding existing nf_queue handler for AF_INET (if any)\n");
 		if (nfq_unbind_pf(*h, AF_INET) < 0) {
 			err(1, "error during nfq_unbind_pf()\n");
 		}
 
-		printf("binding nfnetlink_queue as nf_queue handler for AF_INET\n");
+		log_info("binding nfnetlink_queue as nf_queue handler for AF_INET\n");
 		if (nfq_bind_pf(*h, AF_INET) < 0) {
 			err(1, "error during nfq_bind_pf()\n");
 		}
 	}
+	log_info("binding this socket to queue '0'\n");
 	if(cb){
 		*qh = nfq_create_queue(*h,  port, cb, NULL);
 	}else{
@@ -70,17 +71,11 @@ int start_divert(struct nfq_handle **h, struct nfq_q_handle **qh, int port, void
 	if (!(*qh)) {
 		err(1, "error during nfq_create_queue()\n");
 	}
+	log_info("setting copy_packet mode\n");
 	if (nfq_set_mode(*qh, NFQNL_COPY_PACKET, 0xffff) < 0) {
 		err(1, "can't set packet_copy mode\n");
 	}
 	fd = nfq_fd(*h);
-	flags = fcntl(fd, F_GETFL);
-	if (flags == -1){
-		err(1, "fcntl()");
-	}
-	if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1){
-		err(1, "fcntl()");
-	}
 	return fd; 
 }
 
@@ -103,9 +98,8 @@ Fetch next packet in queue and process it
 void process_next_packet(struct nfq_handle *h, int fd){
 	char buf[BUFSIZE];
 	int rv;
-	if((rv = recv(fd, buf, sizeof(buf), 0)) && rv >= 0) {	
+	if((rv = recv(fd, buf, sizeof(buf), MSG_WAITALL)) && rv >= 0) {	
 		nfq_handle_packet(h, buf, rv);
-		return;
 	}
 	if (errno == ENOBUFS) {
 		log_debug("Err: {ENOBUFS} ; Packet dropped.............\n");

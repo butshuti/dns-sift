@@ -57,15 +57,17 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
 	if(connections_table == NULL || high_level_domains_table == NULL){
 		connections_table = malloc(sizeof(struct hsearch_data));
 		high_level_domains_table = malloc(sizeof(struct hsearch_data));
+		memset(connections_table, 0, sizeof(struct hsearch_data));
+		memset(high_level_domains_table, 0, sizeof(struct hsearch_data));
 		if(0 == hcreate_r(MAX_CONNECTIONS_TABLE_SIZE, connections_table)){
 			log_critical("hcreate: %s\n", strerror(errno));
-			err(-1, "error initializing hash table:");
+			err(-2, "classify_packet(): (1) error initializing hash table");
 		}else if(0 == hcreate_r(MAX_DOMAINS_TABLE_SIZE, high_level_domains_table)){
 			log_critical("hcreate: %s\n", strerror(errno));
-			err(-1, "error initializing hash table:");
+			err(-2, "classify_packet(): (2) error initializing hash table");
 		}
 	}
-    if(rlen < sizeof(struct ip)){ /*At least the ip header should be there!*/
+    if(rlen < sizeof(struct ip)){ //At least the ip header should be there!
         log_critical("Error extracting IP header: Packet too short.");
         return SCORE_FLAGGED;
     }
@@ -106,11 +108,11 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
             dst_port = tcp->dest;
     	    uint8_t *payload = (uint8_t*)tcp + (tcp->doff << 2);
     	    if(ntohs(ip->ip_len) - ((ip->ip_hl << 2) + (tcp->doff << 2)) > 0){
-    	        /*Payload is not empty*/
+    	        //Payload is not empty
     	        err_code = dns_parse((uint8_t *)payload+2, ntohs(ip->ip_len) - ((ip->ip_hl << 2) + (tcp->doff << 2)), &pkt);
     	        printf("IP_LEN: %d, IPHDR_LEN: %d,  TCHHDR_LEN: %d, DNS_LEN: %d----------------\n", ntohs(ip->ip_len), (ip->ip_hl << 2), (tcp->doff << 2), ntohs(ip->ip_len) - ((ip->ip_hl << 2) + (tcp->doff << 2)));
     	    }else{
-    	        /*This packet may be part of the connection handshake or tear-down? Anyway not useful.*/
+    	        //This packet may be part of the connection handshake or tear-down? Anyway not useful.
     	    }
             break;
         }
@@ -168,13 +170,13 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
     }    
     char key[32];
     if(0 > snprintf(key, sizeof(key), "key%u", (drctn == IN ? src_ip.s_addr : dst_ip.s_addr))){//(src_ip.s_addr + dst_ip.s_addr) ^ (src_ip.s_addr | src_ip.s_addr))){
-    	err(-1, "Failed to create key for %d -> %d connection:", src_ip.s_addr, dst_ip.s_addr);
+    	err(-1, "classify_packet(): Failed to create key for %d -> %d connection", src_ip.s_addr, dst_ip.s_addr);
     }
     e.key = key;
     e.data = NULL;
     //printf("KEY (%s): %s\n", e.key, drctn == IN ? "IN" : "OUT");
     cur_t->id = pkt->header->id;
-    if(0 != hsearch_r(e, FIND, &ep, connections_table)){ /*Entry found*/
+    if(0 != hsearch_r(e, FIND, &ep, connections_table)){ //Entry found
     	t = (dnsTransaction*)(ep->data);
     	if(drctn == IN){
     		cur_t->transaction_count = t->transaction_count + 1;
@@ -215,7 +217,7 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
 	if(ep != NULL){
 		ep->data = e.data;
 	}else if(0 == hsearch_r(e, ENTER, &ep, connections_table)){
-		err(1, "Failed updating connections table: ");
+		err(1, "classify_packet(): Failed updating connections table");
 	}    
 	if(cur_t->patt.packet_patt.f_code == DNS_OK && t != NULL){
 		adapt_feature(&(t->patt.src_patt), &(cur_t->patt.src_patt));
@@ -311,8 +313,7 @@ void feature_to_point(const feature ft, uint64_t *arr, uint32_t idx){
 	//arr[1] |= arr[0] - ((1+ft.f_range) / (1+ft.uniqueness));
 }
 
-void print_pattern_point(const pattern *pat, FILE *fp){
-	uint64_t arr[] = {0, 0, 0, 0, 0, 0, 0};
+void pattern_to_point(const pattern *pat, uint64_t *arr){
 	feature_to_point(pat->src_patt, arr, 6);
 	feature_to_point(pat->dst_info, arr, 5);
 	feature_to_point(pat->packet_patt, arr, 4);
@@ -320,6 +321,11 @@ void print_pattern_point(const pattern *pat, FILE *fp){
 	feature_to_point(pat->reply_patt, arr, 2);
 	feature_to_point(pat->ttl_patt, arr, 1);
 	feature_to_point(pat->qname_patt, arr, 0);
+}
+
+void print_pattern_point(const pattern *pat, FILE *fp){
+	uint64_t arr[] = {0, 0, 0, 0, 0, 0, 0};
+	pattern_to_point(pat, arr);
 	fprintf(fp, "%ld, %ld, %ld, %ld, %ld, %ld, %ld\n", arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], arr[6]);
 	//printf("%ld, %ld\n", arr[0], arr[1]);
 	print_pattern(pat);
@@ -349,5 +355,4 @@ void extract_features(const dns_packet *pkt, const unsigned int length, pattern 
 		model_query_feature(pkt, length, &(pat->query_patt));
 		model_qname_feature(pkt->questions->name, &(pat->qname_patt));
 	}
-	
 }

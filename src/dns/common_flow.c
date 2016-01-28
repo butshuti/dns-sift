@@ -34,6 +34,9 @@
 #define MAX(X,Y)(X>Y?X:Y)
 #define MIN(X,Y)(X<Y?X:Y)
 
+extern int classify(uint64_t arr[], int size);
+extern void pattern_to_point(const pattern *pat, uint64_t *arr);
+
 static struct hsearch_data *resolved_domains = NULL;
 
 void model_domain_history(const char *qname, domain_history *history);
@@ -41,9 +44,10 @@ void model_domain_history(const char *qname, domain_history *history);
 int get_domain_history(const char *qname, domain_history **history){
 	if(resolved_domains == NULL){
 		resolved_domains = malloc(sizeof(struct hsearch_data));
+		memset(resolved_domains, 0, sizeof(struct hsearch_data));
 		if(0 == hcreate_r(MAX_DOMAINS_TABLE_SIZE, resolved_domains)){
-			log_critical("hcreate: %s\n", strerror(errno));
-			err(-1, "error initializing hash table:");
+			log_critical("hcreate_r: %s\n", strerror(errno));
+			err(-1, "get_domain_history(): error initializing hash table");
 		}
 	}
 	const char *name = qname;
@@ -78,7 +82,7 @@ int get_domain_history(const char *qname, domain_history **history){
 		if(ep != NULL){
 			ep->data = *history;
 		}else if(0 == hsearch_r(e, ENTER, &ep, resolved_domains)){
-			err(1, "Failed updating domains table: ");
+			err(1, "get_domain_history(): Failed updating domains table");
 		}
 	}
 	return found;
@@ -181,8 +185,8 @@ void model_qname_feature(const char *qname, feature *ft){
 		update_avg(qname, history->len_avg, &avg_flow_len, &avg_len, &num_observations);
 		update_avg(qname, history->nonlc_avg_rate, &avg_flow_nonlc_rate, &avg_nonlc_rate, &num_observations);
 	}else{
-		err(-1, "error retrieving domain history:");
-	}	
+		err(-1, "get_domain_history(): error retrieving domain history");
+	}
 }
 
 void model_domain_history(const char *qname, domain_history *history){
@@ -216,7 +220,10 @@ void model_domain_history(const char *qname, domain_history *history){
 }
 
 PACKET_SCORE  classify_pattern(const pattern *pat){
-	return SCORE_NORMAL;
+	uint64_t arr[7] = {0, 0, 0, 0, 0, 0, 0};
+	pattern_to_point(pat, arr);
+	int score = classify(arr, 7);
+	return score == 0 ? SCORE_NORMAL : SCORE_OUTSTANDING;
 }
 
 #endif
