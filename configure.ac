@@ -14,7 +14,7 @@ AC_PROG_LN_S
 AC_CHECK_LIB([netfilter_queue], [nfq_open],[], AC_MSG_FAILURE([libnetfilter_queue is required but not found on the system. Please install it first.], 1))
 
 # Checks for header files.
-AC_CHECK_HEADERS([netinet/ip.h linux/netfilter.h stdint.h])
+AC_CHECK_HEADERS([netinet/ip.h linux/netfilter.h stdint.h Python.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_INT32_T
@@ -30,12 +30,17 @@ AC_DEFINE([MODEL_SYSTEM_FLOW_THRESHOLDS], 1, [Configure the library adaptively c
 
 
 # Generate binaries
-EXEC_NAME="./bin/dns_sift"
-LIB_NAME="./bin/dns_sift.so"
+EXEC_NAME="dns_sift"
+EXEC_CMD="dns_sift"
+LIB_NAME="dns_sift.so"
+PACKAGE_NAME="dnssift"
 AC_SUBST(exec_name, $EXEC_NAME)
+AC_SUBST(exec_cmd, $EXEC_CMD)
 AC_SUBST(lib_name, $LIB_NAME)
+AC_SUBST(package_name, $PACKAGE_NAME)
 
 AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([setup.py])
 AC_CONFIG_FILES([start.sh])
 
 AC_OUTPUT
