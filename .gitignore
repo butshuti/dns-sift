@@ -1,0 +1,8 @@
+*~
+*.o
+*.so
+*.pyc
+autom4te*
+Makefile
+src/build
+*.csv
