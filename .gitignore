@@ -3,6 +3,12 @@
 *.so
 *.pyc
 autom4te*
-Makefile
 src/build
 *.csv
+Makefile
+configure
+config.h
+config.status
+config.log
+start.sh
+setup.py
