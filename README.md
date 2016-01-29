@@ -23,7 +23,12 @@ Running the app supposes the existence of a training set of normal DNS traffic, 
 ####How to run tests####
 * Coming soon
 ####Deployment instructions####
-* Not yet ready for deployment!
+The program is distributed as a C extension to the python interpreter, so it must be deployed as a python package, after building the extension. The following are the required steps:
+
+* Build the application (as described above in 'Building the app')
+* Run **make install** as root.
+* Done (now the package will be ready system-wide to be used as a python package).
+* To start the program, run **python -m dnssift.start**
 
 ### Contribution guidelines ###
 
