@@ -10,7 +10,7 @@ DNSSift is a proof-of-concept for a host-based DNS firewall, originally develope
 ####Dependencies####
 1.  [libpcap-dev](http://sourceforge.net/projects/libpcap/): required for user-level packet capture.
 2.  [libnetfilter-queue-dev](http://www.netfilter.org/projects/libnetfilter_queue/): required for accessing and processing packets queued by the kernel packet filter.
-3.  [python](https://www.python.org/: The demo classifier is an adaptive clustering-based classifier implemented in python.
+3.  [python2.7](https://www.python.org/: The demo classifier is an adaptive clustering-based classifier implemented in python.
   - [numpy](http://www.numpy.org/) : for simple array manipulations
 4.  autoconf (to configure and prepare the Makefile)
 

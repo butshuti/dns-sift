@@ -1,2 +1,2 @@
-include *.py
+include dns_sift *.py
 recursive-include py config data

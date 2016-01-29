@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-I/usr/include/python2.7
+CFLAGS=-I/usr/include/python2.7 -fPIC 
 LDFLAGS=-lpython2.7 -shared -rdynamic -Wl,-soname
 default: classifier.py
 	$(CC) $(CFLAGS) $(LDFLAGS) -c c_interface.c -o classifier_interface.o

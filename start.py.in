@@ -1,0 +1,36 @@
+import os, sys
+
+QUEUE_PORT_IN="6000"
+QUEUE_PORT_OUT="6000"
+TCP_IN="INPUT -p tcp --source-port 53 -j NFQUEUE --queue-num {}".format(QUEUE_PORT_IN)
+UDP_IN="INPUT -p udp --source-port 53 -j NFQUEUE --queue-num {}".format(QUEUE_PORT_IN)
+TCP_OUT="OUTPUT -p tcp --destination-port 53 -j NFQUEUE --queue-num {}".format(QUEUE_PORT_OUT)
+UDP_OUT="OUTPUT -p udp --destination-port 53 -j NFQUEUE --queue-num {}".format(QUEUE_PORT_OUT)
+
+def start_divert():
+    DIV_IN="iptables -I {}; iptables -I {}".format(TCP_IN , UDP_IN)
+    DIV_OUT="iptables -I {} ; iptables -I {}".format(TCP_OUT, UDP_OUT)
+    print("Diverting incoming traffic at 53 to {}".format(QUEUE_PORT_IN))
+    print("Diverting outgoing traffic at 53 to {}".format(QUEUE_PORT_OUT))
+    os.system(DIV_IN)
+    os.system(DIV_OUT)
+    return
+
+def end_divert():
+    END_DIV_IN="iptables -D {} ; iptables -D {}".format(TCP_IN, UDP_IN)
+    END_DIV_OUT="iptables -D {} ; iptables -D {}".format(TCP_OUT, UDP_OUT)
+    print("Ending divert.....")
+    os.system(END_DIV_IN)
+    os.system(END_DIV_OUT)
+    return
+    
+if __name__ == '__main__':
+	import dnssift.daemon as dnssift_daemon
+	print("Starting iptables-based packet handling...")
+	try:
+	    start_divert()
+	    dnssift_daemon.start_daemon()
+	    end_divert()
+	except KeyboardInterrupt:
+	    end_divert()
+	    sys.exit()

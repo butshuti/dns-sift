@@ -8,6 +8,7 @@
 #include <err.h>
 
 #include "poller.h"
+#include "qh_daemon.h"
 
 extern int train();
 
@@ -21,7 +22,7 @@ void sigHandle(int signum){
 	exit(signum);
 }
 
-int main(){
+void pkt_divert_start(){
 	int fd_in = start_divert(&nfqhIN, &inQ, 6000, NULL);
 	fprintf(stderr, "INTITIATING QUEUE: %d\n", fd_in);
 	signal(SIGSEGV, sigHandle);
@@ -41,5 +42,4 @@ int main(){
 		process_next_packet(nfqhIN, fd_in);
 	}
 	end_divert(&nfqhIN, &inQ);
-	return 0;
 }

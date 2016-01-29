@@ -33,14 +33,17 @@ AC_DEFINE([MODEL_SYSTEM_FLOW_THRESHOLDS], 1, [Configure the library adaptively c
 EXEC_NAME="dns_sift"
 EXEC_CMD="dns_sift"
 LIB_NAME="dns_sift.so"
+OBJECT_NAME="dnssift.o"
 PACKAGE_NAME="dnssift"
 AC_SUBST(exec_name, $EXEC_NAME)
 AC_SUBST(exec_cmd, $EXEC_CMD)
 AC_SUBST(lib_name, $LIB_NAME)
+AC_SUBST(object_name, $OBJECT_NAME)
 AC_SUBST(package_name, $PACKAGE_NAME)
 
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([setup.py])
 AC_CONFIG_FILES([start.sh])
+AC_CONFIG_FILES([start.py])
 
 AC_OUTPUT

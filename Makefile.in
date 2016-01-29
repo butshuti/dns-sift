@@ -1,16 +1,23 @@
-LIBNAME = ./bin/@lib_name@
+LIBNAME = ./bin/@package_name@/@lib_name@
+OBJECTNAME = ./bin/@package_name@/@object_name@
 EXEC_NAME = ./bin/@package_name@/@exec_name@
 OBJECTS = $(patsubst %.c,%.o,$(wildcard *.c src/dns/*.c))
-CFLAGS = -gdwarf-2 -O3 -Wall
+SOURCES = $(patsubst %.c,%.c,$(wildcard *.c src/dns/*.c))
+INCLUDES = $(patsubst %.h,%.h,$(wildcard *.h src/dns/*.h))
+CFLAGS = -gdwarf-2 -O3 -Wall -fPIC
 LDFLAGS = -L/usr/local/lib -shared -rdynamic -Wl,-soname,$(LIBNAME) -Wl,--no-undefined 
 LDLIBS = -lnfnetlink -lnetfilter_queue -lpthread -lpcap -lpython2.7
 
 build : $(OBJECTS)
 	mkdir -p bin/dnssift
-	cp -r src/classifier/* bin/dnssift
+	cp -r src/classifier/* bin/@package_name@
 	cp setup.py bin
+	cp start.py bin/@package_name@
 	$(MAKE) -C src/classifier
-	$(CC) $(OBJECTS) src/classifier/classifier_interface.o -o $(EXEC_NAME) $(LDLIBS) $(CFLAGS)	
+	#$(CC) $(OBJECTS) src/classifier/classifier_interface.o -o $(OBJECTNAME) $(LDLIBS) $(CFLAGS)
+	cp $(SOURCES) bin/@package_name@
+	cp $(INCLUDES) bin/@package_name@
+	cd bin && python setup.py build
 
 install : build
 	cd bin && python setup.py install
@@ -19,7 +26,7 @@ test :
 	python -m @package_name@.classifier
 	
 clean :
-	rm -rf $(EXEC_NAME) $(LIB_NAME) *.o *~ src/dns/*.o src/dns/*~ bin setup.py
+	rm -rf $(EXEC_NAME) $(LIB_NAME) *.o *~ src/dns/*.o src/dns/*~ bin setup.py start.py
 	$(MAKE) -C src/classifier clean
 .PHONY: clean
 
