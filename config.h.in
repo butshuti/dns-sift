@@ -22,9 +22,6 @@
    */
 #undef HAVE_LIBNETFILTER_QUEUE
 
-/* Define to 1 if you have the <linux/netfilter.h> header file. */
-#undef HAVE_LINUX_NETFILTER_H
-
 /* Define to 1 if you have the `memmove' function. */
 #undef HAVE_MEMMOVE
 
@@ -36,6 +33,9 @@
 
 /* Define to 1 if you have the <netinet/ip.h> header file. */
 #undef HAVE_NETINET_IP_H
+
+/* Define to 1 if you have the <pcap/pcap.h> header file. */
+#undef HAVE_PCAP_PCAP_H
 
 /* Define to 1 if you have the <Python.h> header file. */
 #undef HAVE_PYTHON_H
