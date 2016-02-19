@@ -3,7 +3,6 @@
 #include <signal.h>
 #include <assert.h>
 #include <string.h>
-#include <pcap/pcap.h>
 #include <unistd.h>
 #include <err.h>
 
