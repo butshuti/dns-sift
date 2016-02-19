@@ -5,6 +5,18 @@ AC_PREREQ([2.69])
 AC_INIT([dns_sift], [0.1], [theogenebucuti@my.unt.edu])
 AC_CONFIG_HEADERS([config.h])
 
+dnl macro that checks for specific modules in python
+AC_DEFUN([AC_PYTHON_MODULE],
+[AC_MSG_CHECKING(for module $1 in python)
+echo "import $1" | python -
+if test $? -ne 0 ; then
+AC_MSG_RESULT(not found)
+AC_MSG_ERROR(The $1 module is required, but was not found in your python modules)
+fi
+AC_MSG_RESULT(found)
+])
+
+
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_INSTALL
@@ -12,9 +24,12 @@ AC_PROG_LN_S
 
 # Checks dependencies.
 AC_CHECK_LIB([netfilter_queue], [nfq_open],[], AC_MSG_FAILURE([libnetfilter_queue is required but not found on the system. Please install it first.], 1))
+AC_PYTHON_MODULE(numpy)
+AC_PYTHON_MODULE(matplotlib)
 
 # Checks for header files.
-AC_CHECK_HEADERS([netinet/ip.h linux/netfilter.h stdint.h Python.h])
+CFLAGS="$CFLAGS -I/usr/include/python2.7"
+AC_CHECK_HEADERS([pcap/pcap.h netinet/ip.h stdint.h Python.h], [], AC_MSG_FAILURE([One or more required headers are missing. Please check the report above.]))
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_INT32_T
