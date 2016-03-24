@@ -22,7 +22,7 @@
 #define UDP_HDR_SIZE 8
 #define TCP_HDR_SIZE 20
 
-#define MAX_CONNECTIONS_TABLE_SIZE 100
+#define MAX_CONNECTIONS_TABLE_SIZE 10000
 #define MAX_DOMAINS_TABLE_SIZE 1000
 
 #define  UNUSED_PARAM(x) ((void)(x))
@@ -144,7 +144,8 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
     }
     if(pkt == NULL){
     	cur_t->patt.packet_patt.f_code = DNS_NOT_DNS;
-    	//errx(-1, "Packet is invalid!");    	 
+    	//errx(-1, "Packet is invalid!");  
+    	return classify_pattern(&(cur_t->patt));  	 
     }   
     if(cur_t->patt.packet_patt.f_code == DNS_OK){
     	extract_features(pkt, rlen, &(cur_t->patt));
@@ -353,6 +354,8 @@ void extract_features(const dns_packet *pkt, const unsigned int length, pattern 
 		model_reply_feature(pkt, &(pat->reply_patt));
 	}else{
 		model_query_feature(pkt, length, &(pat->query_patt));
-		model_qname_feature(pkt->questions->name, &(pat->qname_patt));
+		if(pkt->questions){
+		    model_qname_feature(pkt->questions->name, &(pat->qname_patt));
+		}
 	}
 }
