@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, signal
 
 QUEUE_PORT_IN="6000"
 QUEUE_PORT_OUT="6000"
@@ -24,13 +24,18 @@ def end_divert():
     os.system(END_DIV_OUT)
     return
     
+def handler(signum, frame):
+    end_divert()
+    sys.exit()
+    return
+    
 if __name__ == '__main__':
-	import dnssift.daemon as dnssift_daemon
-	print("Starting iptables-based packet handling...")
-	try:
-	    start_divert()
-	    dnssift_daemon.start_daemon()
-	    end_divert()
-	except KeyboardInterrupt:
-	    end_divert()
-	    sys.exit()
+    import dnssift.daemon as dnssift_daemon
+    print("Starting iptables-based packet handling...")
+    signal.signal(signal.SIGINT, handler)
+    signal.signal(signal.SIGSEGV, handler)
+    signal.signal(signal.SIGTERM, handler)
+    signal.signal(signal.SIGABRT, handler)
+    start_divert()
+    dnssift_daemon.start_daemon()
+    end_divert()
