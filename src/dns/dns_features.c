@@ -27,6 +27,8 @@
 
 #define  UNUSED_PARAM(x) ((void)(x))
 
+#define INVALID_DNS_QNAME_TAG ".dilavni"
+
 const feature NULL_FEATURE = {0, 0, 0};
 static struct hsearch_data *connections_table = NULL;
 static struct hsearch_data *high_level_domains_table = NULL;
@@ -46,7 +48,7 @@ extern void model_reply_feature(const dns_packet *pkt, feature *ft);
 extern void model_src_feature(const dns_packet *pkt, feature *ft);
 extern void model_dst_feature(const dns_packet *pkt, feature *ft);
 extern void model_qname_feature(const char *qname, feature *ft);
-extern PACKET_SCORE classify_pattern(const pattern *pat);
+extern PACKET_SCORE classify_pattern(const pattern *pat, const char *tag);
 
 /*
 Extracts details from IP packet (assumes Ethernet header stripped off)
@@ -75,6 +77,7 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
     dns_packet *pkt = NULL;
     struct	in_addr src_ip, dst_ip;
     uint16_t src_port, dst_port;
+    char tag[255];
     ENTRY e, *ep;
     dnsTransaction *cur_t, *t = NULL;
     cur_t = (dnsTransaction *)malloc(sizeof(dnsTransaction));
@@ -140,13 +143,21 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
     	cur_t->patt.packet_patt.f_code = DNS_OK;
     }
     if(!fp){
-    	fp = fopen("datapoints.csv", "a+");
+    	fp = fopen("/tmp/dnssift/datapoints.csv", "a+");
     }
     if(pkt == NULL){
     	cur_t->patt.packet_patt.f_code = DNS_NOT_DNS;
     	//errx(-1, "Packet is invalid!");  
-    	return classify_pattern(&(cur_t->patt));  	 
-    }   
+    	snprintf(tag, 255, "%u;%s", drctn == OUT ? dst_ip.s_addr : src_ip.s_addr, INVALID_DNS_QNAME_TAG);
+    	PACKET_SCORE score = classify_pattern(&(cur_t->patt), tag);  	 
+    	free(cur_t);
+    	return score;
+    }
+    if(pkt->questions && pkt->questions->name){ 
+    	snprintf(tag, 255, "%u;%s", drctn == OUT ? dst_ip.s_addr : src_ip.s_addr, pkt->questions->name);
+    }else{
+    	snprintf(tag, 255, "%u;%s", drctn == OUT ? dst_ip.s_addr : src_ip.s_addr, INVALID_DNS_QNAME_TAG);
+    }
     if(cur_t->patt.packet_patt.f_code == DNS_OK){
     	extract_features(pkt, rlen, &(cur_t->patt));
     }
@@ -230,9 +241,11 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
 		adapt_feature(&(t->patt.packet_patt), &(cur_t->patt.packet_patt));
 	} 
 	UNUSED_PARAM(dst_port);
-	//if(pkt->answers == 0)
-		print_pattern_point(&(cur_t->patt), fp);
-	return classify_pattern(&(cur_t->patt));
+	/*if(pkt->answers == 0)
+		print_pattern_point(&(cur_t->patt), fp);*/
+	PACKET_SCORE score = classify_pattern(&(cur_t->patt), tag);	 
+ 	free(cur_t);
+ 	return score;
 }
 
 void adapt_feature(const feature *prev, feature *cur){
@@ -328,7 +341,6 @@ void print_pattern_point(const pattern *pat, FILE *fp){
 	uint64_t arr[] = {0, 0, 0, 0, 0, 0, 0};
 	pattern_to_point(pat, arr);
 	fprintf(fp, "%ld, %ld, %ld, %ld, %ld, %ld, %ld\n", arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], arr[6]);
-	//printf("%ld, %ld\n", arr[0], arr[1]);
 	print_pattern(pat);
 }
 

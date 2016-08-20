@@ -1,46 +1,120 @@
 from dnssift.py.classifier import *
 from dnssift.py.debug import *
+from threading import Thread
+import sys, os, socket, time, numpy as np
+from os.path import expanduser
 
+UDS_FILE_NAME = '/tmp/dnssift/pipe.uds'
+DUMMY_TOKEN = "no_token"
+DUMMY_TOKEN_CONF = "{}=>{}".format(DUMMY_TOKEN, DUMMY_TOKEN)
+DUMMY_MSG_LEN = 64
 classifier = None
+udsSockFile = None
+udsClientConnection = None
 debug_set(False)
 
-def classify(point):
+class ConnectionThread(Thread):
+    def __init__(self, sock_file):
+        Thread.__init__(self)
+        #Check if socket already open
+        try:
+            os.unlink(sock_file)
+        except OSError:
+            if os.path.exists(sock_file):
+                raise Exception("Address {} unavailable: someone already listening there?".format(sock_file))
+        #Create and bind UDS socket for client requests
+        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)  
+        self.sock.bind(sock_file)
+        
+    def run(self):
+        self.sock.listen(1)
+        while True:
+            #Wait for a connection
+            connection, client_address = self.sock.accept() 
+            #Read authentication token to allow connection
+            try:
+                data = connection.recv(len(DUMMY_TOKEN))
+                print("Received client with token", data)
+                #Verify token
+                if data == DUMMY_TOKEN:
+                    connection.sendall(DUMMY_TOKEN_CONF)
+                    global udsClientConnection
+                    udsClientConnection = connection
+                else:
+                    connection.close()     
+            finally:
+                pass
+    
+def reduceDim(arr, scale=0.1, offset=0):
+    inDim = len(arr)
+    if inDim <= 2: return np.array(arr)
+    x = 0.0
+    y = 0.0
+    dimRange = range(inDim)
+    for i in dimRange[0::2]:
+        x += (i+1)*arr[i]
+    for i in dimRange[1::2]:
+        y += (i+1)*arr[i]
+    return [x,y]
+
+def classify(point, tag):
     global classifier
     if classifier == None:
         raise Exception("Classifier not initialized.")
-    return classifier.classify(point)
+    score = classifier.classify(reduceDim(point))
+    if udsClientConnection != None:
+        try:
+            msg = "{}#{}#{}#".format(point, tag, score)
+            udsClientConnection.sendall(msg.ljust(DUMMY_MSG_LEN))
+        except Exception, msg:
+            print("udsClientConnection -- Error", msg)    
+    return score
 
-def train():
+def classifyWithLabel(point, tag):
+    global classifier
+    if classifier == None:
+        raise Exception("Classifier not initialized.")
+    return classifier.classifyWithLabel(point)
+
+def train(enableSubscribe=True):
     global classifier
     print("Started training.....")
     """Load training data set"""
     from dnssift.data.dns_tunneling import loader
     ds = loader.DataSet()
-    """Generate model"""
-    training_samples = ds.training_samples
-    observations = ds.test_samples
+    """Generate model ---
+    Train with 'normal DNS' samles only"""
+    training_samples = [[reduceDim(x[0]), x[1]] for x in ds.training_samples]
     k = len(training_samples)/20
     classifier = Classifier()
     classifier.train(training_samples, k)
     print("Finished training.....")
-    return 0
+    if enableSubscribe:
+        print("Initializing subscription socket.....")
+        ct = ConnectionThread(UDS_FILE_NAME)
+        ct.setDaemon(True)
+        ct.start()
+        print("Subscription socket created at {}.....".format(UDS_FILE_NAME))
+    return 0       
+                
+def randTest():
+    import random
+    from dnssift.data.dns_tunneling import loader
+    ds = loader.DataSet()   
+    test_data = [[reduceDim(x[0]), x[1]] for x in ds.test_samples]
+    positive_samples = [sample for sample in test_data if sample[1][1] == 'P']
+    negative_samples = [sample for sample in test_data if sample[1][1] == 'N']
+    test_data = [positive_samples[i] for i in random.sample(range(len(positive_samples)), len(positive_samples))][:15]
+    test_data.extend([negative_samples[i] for i in random.sample(range(len(negative_samples)), len(negative_samples))][:15])
+    for item in test_data:
+        print("(label: {}, classification: {}) -- source: {}".format(item[1][1], classifyWithLabel(item[0], item[1]), item[1][0]))
+    return
 
-if __name__ == "__main__":
+def runMain():
     print("Running tests....")
     train()
-    print("DNS 1", classify([0, 1, 1, 81, 1, 1, 1]))
-    print("DNS 2", classify([0, 3, 3, 3, 3, 3, 3]))
-    print("DNS 3", classify([1, 3, 3, 3, 3, 3, 3]))
-    print("DNS 4", classify([128, 3, 3, 3, 3, 3, 3]))
-    print("DNS 5", classify([64, 3, 3, 3, 3, 3, 3]))
-    print("DNS 6", classify([128, 3, 3, 3, 3, 3, 3])) 
-    
-    print("NOT DNS 1", classify([48, 0, 0, 0, 40, 64, 0]))
-    print("NOT DNS 2", classify([32, 0, 0, 0, 40, 64, 32]))
-    print("NOT DNS 3", classify([32, 0, 0, 0, 40, 64, 0]))
-    print("NOT DNS 4", classify([32, 0, 0, 0, 40, 64, 32]))
-    print("NOT DNS 5", classify([32, 0, 0, 0, 40, 64, 32]))
-    print("NOT DNS 6", classify([32, 0, 0, 0, 40, 64, 32]))
-    print("NOT DNS 7", classify([32, 0, 0, 0, 40, 64, 0])) 
-    print("Tests completed.")  
-    
+    randTest() 
+    print("Tests completed.")    
+    return
+if __name__ == "__main__":
+    runMain()

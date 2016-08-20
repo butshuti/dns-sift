@@ -127,5 +127,11 @@ typedef struct {
 	pattern patt;	/*Adaptive pattern feature vector for the particular (srcPi, dstIP) pair*/
 } dnsTransaction;
 
+/**/
+typedef struct {
+	char *qname;
+	uint32_t remote_ip;
+} dnsTransactionLogWrapper;
+
 PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **pkt_info, DIRECTION drtcn);
 #endif

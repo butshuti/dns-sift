@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <signal.h>
 #include <assert.h>
 #include <string.h>
 #include <unistd.h>
@@ -9,23 +8,65 @@
 #include "poller.h"
 #include "qh_daemon.h"
 
-extern int train();
+extern int train(void);
 
 struct nfq_handle *nfqhIN;
 struct nfq_q_handle *inQ;
 
-void sigHandle(int signum){
-	fprintf(stderr, "Interrupted: <%d>:: ERROR (%d -- %s)\n", signum, errno, strerror(errno));
-	end_divert(&nfqhIN, &inQ);
-	//fprintf(stderr, "Freed %d children\n", free_children());
-	exit(signum);
+#define  QUEUE_PORT_IN 6000
+#define QUEUE_PORT_OUT 6000
+#define  TCP_IN "iptables %s INPUT -p tcp --source-port 53 -j NFQUEUE --queue-num %d ;"
+#define  UDP_IN "iptables %s INPUT -p udp --source-port 53 -j NFQUEUE --queue-num %d ;"
+#define  TCP_OUT "iptables %s OUTPUT -p tcp --destination-port 53 -j NFQUEUE --queue-num %d ;"
+#define  UDP_OUT "iptables %s OUTPUT -p udp --destination-port 53 -j NFQUEUE --queue-num %d ;"
+static int pending_signal = 0;
+
+void iptables_divert_tpl(char *cmd){
+	if(!cmd){
+		fprintf(stderr, "Invalid iptables option.\n");
+		exit(-1);
+	}else if(strncmp(cmd, "-I", 2) !=0 && strncmp(cmd, "-D", 2) != 0){
+		fprintf(stderr, "Supported options are ['-I' and '-D'] only.\n");
+		exit(-1);
+	}
+	char divIn[255], divOut[255];
+	int offs = snprintf(divIn, sizeof(divIn), TCP_IN, cmd, QUEUE_PORT_IN);
+	if(offs < strlen(TCP_IN)){
+		perror("iptables_divert_tpl() - snprintf");
+		exit(-1);
+	}
+	snprintf(divIn + offs, sizeof(divIn) - offs, UDP_IN, cmd, QUEUE_PORT_IN);
+	offs = snprintf(divOut, sizeof(divOut), TCP_OUT, cmd, QUEUE_PORT_OUT);
+	if(offs < strlen(TCP_IN)){
+		perror("iptables_divert_tpl() - snprintf");
+		exit(-1);
+	}
+	snprintf(divOut + offs, sizeof(divOut) - offs, UDP_OUT, cmd, QUEUE_PORT_OUT);
+	printf("\n\nRefreshing iptables rules for DNS traffic...\n%s\n%s\n\n", divIn, divOut);
+	if(system(divIn) == -1 || system(divOut) == -1){
+		perror("iptables_divert_tpl() -- system()");
+		exit(-1);
+	}
 }
 
-void pkt_divert_start(){
+void iptables_start_divert(void){
+	iptables_divert_tpl("-I");
+}
+
+void iptables_end_divert(void){
+	iptables_divert_tpl("-D");
+}
+
+void qh_daemon_signal(int signum){
+	fprintf(stderr, "Signalled <%d> to disable QUEUE?\n", signum);
+	pending_signal = signum;
+	iptables_end_divert();
+	exit(pending_signal);
+}
+
+void pkt_divert_start(void (*thread_switch_wrapper)(void (*)(void))){
 	int fd_in = start_divert(&nfqhIN, &inQ, 6000, NULL);
 	fprintf(stderr, "INTITIATING QUEUE: %d\n", fd_in);
-	signal(SIGSEGV, sigHandle);
-	signal(SIGINT, sigHandle);
 	if (getuid() == 0) {
 		
 	}
@@ -37,8 +78,16 @@ void pkt_divert_start(){
 		err(1, "fcntl()");
 	}*/
 	train();
-	while(1){
-		process_next_packet(nfqhIN, fd_in);
+	iptables_start_divert();
+	while(!pending_signal){
+		if(thread_switch_wrapper){
+			void f(void){process_next_packet(nfqhIN, fd_in);}
+			thread_switch_wrapper(&f);
+		}else{
+			process_next_packet(nfqhIN, fd_in);
+		}
 	}
+	iptables_end_divert();
 	end_divert(&nfqhIN, &inQ);
+	exit(pending_signal);
 }
