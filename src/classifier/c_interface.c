@@ -6,7 +6,7 @@ static PyObject* classifyFunction = NULL;
 
 PyObject *pyListFromCArray(int array[], size_t size); //forward
 
-int train()
+int train(void)
 {
 	fprintf(stderr, "c_interface: Training starting.\n");
 	/* Initialize the Python interpreter.  Required. */
@@ -51,23 +51,31 @@ int train()
     return classifyFunction != NULL;
 }
 
-int classify(int arr[], int size)
+int classify(int arr[], int size, const char *tag)
 {
 	if(classifyFunction == NULL){
 		fprintf(stderr, "classifyFunction is NULL: classifier not trained.\n");
 		exit(-1);
 	}
+	//acquire Python's Global Interpreter Lock (GIL)
+	PyGILState_STATE gstate;
+   gstate = PyGILState_Ensure();
+   //Call the needed Python functions using the Python API
 	PyObject* py_arr = pyListFromCArray(arr, size);
-	PyObject *arglist = PyTuple_Pack(1, py_arr);
+	PyObject* py_str = PyString_FromString(tag);
+	PyObject *arglist = PyTuple_Pack(2, py_arr, py_str);
 	PyObject* retObj = PyObject_CallObject(classifyFunction, arglist);
 	int ret = PyInt_AsLong(retObj);
 	Py_CLEAR(py_arr);
 	Py_CLEAR(arglist);
 	Py_CLEAR(retObj);
+	//Release the GIL
+	PyGILState_Release(gstate);
+	//Return result
 	return ret;
 }
 
-Obslt_main(int argc, char **argv)
+int Obslt_main(int argc, char **argv)
 {
 	int arr[] = {0, 1, 1, 81, 1, 1, 1}, arr2[] = {0, 3, 3, 3, 3, 3, 3}, 
 		arr3[] = {32, 0, 0, 0, 40, 64, 32}, arr4[] = {48, 0, 0, 0, 40, 64, 0};
@@ -76,12 +84,13 @@ Obslt_main(int argc, char **argv)
 	train();
 	size_t i;
 	for(i=0; i<4; i++){
-		int ret = classify(arrs[i], 7);
+		int ret = classify(arrs[i], 7, "test");
 		printf("Result: %d\n", ret);
 	}
     /* Exit, cleaning up the interpreter */
     Py_Exit(0);
     /*NOTREACHED*/
+    return -1;
 }
 
 PyObject *pyListFromCArray(int array[], size_t arr_siz) {

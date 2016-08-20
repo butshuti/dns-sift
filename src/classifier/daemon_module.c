@@ -1,9 +1,27 @@
 #include <Python.h>
+#include <signal.h>
 #include "qh_daemon.h"
 
+void sigHandle(int signum){
+	fprintf(stderr, "Interrupted: <%d>\n", signum);
+	if(signum != SIGINT){
+		fprintf(stderr, "ERROR (%d): %s\n", errno, strerror(errno));
+	}
+	qh_daemon_signal(signum);
+}
+static void thread_switch_wrapper(void (*f)(void)){
+	 	Py_BEGIN_ALLOW_THREADS
+	 	f();
+	 	Py_END_ALLOW_THREADS
+}
+	 
 static PyObject* daemon_start(PyObject *self, PyObject *args)
 {
-    pkt_divert_start();
+    signal(SIGSEGV, sigHandle);
+	 signal(SIGINT, sigHandle);
+	 signal(SIGTERM, sigHandle);
+	 signal(SIGHUP, sigHandle);
+    pkt_divert_start(&thread_switch_wrapper);
     return Py_BuildValue("d", 0);
 }
 
@@ -18,6 +36,10 @@ static PyMethodDef module_methods[] = {
 PyMODINIT_FUNC initdaemon(void)
 {
     PyObject *m = Py_InitModule3("daemon", module_methods, module_docstring);
+    // Make sure the Global Interpreter Lock has been created to properly initialize threading
+	 if(!PyEval_ThreadsInitialized()){
+		 PyEval_InitThreads();
+	 }
     if(m == NULL){
     	return;
     }
