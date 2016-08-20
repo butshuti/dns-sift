@@ -16,16 +16,25 @@ class DataSet(object):
         
     def load(self):
         import os
-        normal = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'normal.csv')
+        browsers = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'browsers.csv')
+        alexa = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'namebench_alexa.csv')
+        firefox = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'namebench_firefox.csv')
         iodine = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'iodine.csv')
         dnscat = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dnscat.csv')
-        training_samples = parse_file(normal)
+        browsers_samples = parse_file(browsers)
+        alexa_samples = parse_file(alexa)
+        firefox_samples = parse_file(firefox)
         iodine_samples = parse_file(iodine)
         dnscat_samples = parse_file(dnscat)
-        observations = [([float(x) for x in p], ('normal DNS', 'P')) for p in training_samples]
+        training_samples = [([float(x) for x in p], ('browsers', 'P')) for p in browsers_samples[0::10]]
+        observations = [([float(x) for x in p], ('browsers', 'P')) for p in browsers_samples]
+        alexa_samples = [([float(x) for x in p], ('namebench_Alexa', 'P')) for p in alexa_samples]
+        firefox_samples = [([float(x) for x in p], ('namebench_Firefox', 'P')) for p in firefox_samples]
         iodine_samples = [([float(x) for x in p], ('iodine', 'N')) for p in iodine_samples]
         dnscat_samples = [([float(x) for x in p], ('dnscat', 'N')) for p in dnscat_samples]
+        observations.extend(alexa_samples)
+        observations.extend(firefox_samples)
         observations.extend(iodine_samples)
         observations.extend(dnscat_samples)
-        self.training_samples = numpy.array([([float(x) for x in p], 'N') for p in training_samples])
+        self.training_samples = numpy.array(training_samples)
         self.test_samples = numpy.array(observations)        
