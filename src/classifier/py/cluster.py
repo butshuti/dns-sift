@@ -1,10 +1,16 @@
 import vectorutils, numpy, math, sys
 from debug import *
+from hcluster import hcluster, draw_dendrogram
 
 PARAM_THRESHOLD = "threshold"
 PARAM_SIZE = "size"
 PARAM_OBS = "observations"
 PARAM_ADAPTIVE = "adaptive"
+
+def draw_tree(observations, filename):
+    node = hcluster([o[0] for o in observations])
+    draw_dendrogram(node, [o[1] for o in observations], filename)
+    return filename
 
 def reduceDim(arr, scale=0.1, offset=0):
     inDim = len(arr)
@@ -70,7 +76,6 @@ class Cluster(object):
             new_obs = numpy.array(outliers.values())
             new_centroids, new_dist = vectorutils.thresholded_cluster(new_obs, self.max_radius)
             k = len(new_centroids)
-            debug_plot(new_obs)
             #debug_plot(new_centroids, 'rD')
             #debug_print(clusters, dist)
             debug_print("RADIUS {} EXCEEDED: creating {} new MAX{}-centers for {}".format(self.max_radius, k, new_dist, outliers))            
@@ -105,6 +110,9 @@ class Cluster(object):
                 self.clusterNodes[clusters[idx]].label = observations[idx][1]
         return clusters, dist
     
+    def draw_map(self, observations):
+        return None
+    
     def getClusterNodes(self, dimFunc):
         ret = [(0,0,0)]*len(self.clusterNodes)
         mapOverLay = (0,0)
@@ -119,3 +127,28 @@ class Cluster(object):
             coords = newCoords(coords[0], coords[1], self.clusterNodes[idx].size)
             ret[idx] = (coords[0], coords[1], self.clusterNodes[idx].size)
         return numpy.array(ret)
+    
+class HCluster(Cluster):
+    def __init__(self, **kwargs):
+        if PARAM_OBS not in kwargs:
+            raise Exception("Cluster initialization requires initial observations")
+        elif PARAM_THRESHOLD not in kwargs:
+            raise Exception("Hierarchical cluster initialization requires a distance threshold.")
+        obs_raw = kwargs[PARAM_OBS]
+        obs = numpy.array([arr[0] for arr in obs_raw])
+        self.adaptive = False
+        self.min_dist = float(kwargs[PARAM_THRESHOLD])/3
+        self.max_radius = float(kwargs[PARAM_THRESHOLD])
+        tree = hcluster(obs)
+        clusters = tree.extract_clusters(self.max_radius) 
+        self.centroids = numpy.array([c.vec for c in clusters])
+        #trials, dist = self._cluster(obs_raw)
+        self.clusterNodes = [ClusterNode(reduceDim(arr),0.001) for arr in self.centroids]
+        if PARAM_ADAPTIVE in kwargs:
+            self.adaptive = bool(kwargs[PARAM_ADAPTIVE])  
+        #for idx in range(len(self.clusterNodes)):
+        #    self.clusterNodes[trials[idx]].label = 'group {}'.format(idx)    
+        return
+    def draw_map(self, observations):
+        filename = '/home/hazirex/dump/session_prof/log.jpg'
+        return draw_tree(observations, filename)

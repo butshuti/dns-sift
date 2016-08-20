@@ -1,12 +1,16 @@
 from cluster import *
 
 class Classifier():
-    def __init__(self):
+    def __init__(self, hierarchichal_init=False):
         self.profile = None
         self.initSize = 0
+        self.hierarchical_init = hierarchichal_init
         
-    def train(self, data, k):    
-        self.profile = Cluster(observations=data, size=k, adaptive=False)
+    def train(self, data, k):
+        if self.hierarchical_init:
+            self.profile = HCluster(observations=data, threshold=k, adaptive=False)
+        else:
+            self.profile = Cluster(observations=data, size=k, adaptive=False)
         self.initSize = len(self.profile.centroids)
         
     def classify_many(self, observations):
@@ -24,3 +28,7 @@ class Classifier():
         if self.classify_many(numpy.array([[point]]))[0] == 'P':
             return 1
         return 0
+    
+    def classifyWithLabel(self, point):
+        return self.classify_many(numpy.array([[point]]))[0] 
+    
