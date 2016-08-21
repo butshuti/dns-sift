@@ -1,6 +1,7 @@
 #include <string.h>
 #include <errno.h>
 #include <err.h>
+#include <signal.h>
 #include <strings.h>
 #include <stdlib.h>
 #include <netinet/ip.h>
@@ -22,8 +23,8 @@
 #define UDP_HDR_SIZE 8
 #define TCP_HDR_SIZE 20
 
-#define MAX_CONNECTIONS_TABLE_SIZE 10000
-#define MAX_DOMAINS_TABLE_SIZE 1000
+#define MAX_CONNECTIONS_TABLE_SIZE 2
+#define MAX_DOMAINS_TABLE_SIZE 2
 
 #define  UNUSED_PARAM(x) ((void)(x))
 
@@ -63,10 +64,12 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
 		memset(high_level_domains_table, 0, sizeof(struct hsearch_data));
 		if(0 == hcreate_r(MAX_CONNECTIONS_TABLE_SIZE, connections_table)){
 			log_critical("hcreate: %s\n", strerror(errno));
-			err(-2, "classify_packet(): (1) error initializing hash table");
+			perror("classify_packet(): (1) error initializing hash table");
+			raise(SIGTERM);
 		}else if(0 == hcreate_r(MAX_DOMAINS_TABLE_SIZE, high_level_domains_table)){
 			log_critical("hcreate: %s\n", strerror(errno));
-			err(-2, "classify_packet(): (2) error initializing hash table");
+			perror("classify_packet(): (2) error initializing hash table");
+			raise(SIGTERM);
 		}
 	}
     if(rlen < sizeof(struct ip)){ //At least the ip header should be there!
@@ -182,7 +185,10 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
     }    
     char key[32];
     if(0 > snprintf(key, sizeof(key), "key%u", (drctn == IN ? src_ip.s_addr : dst_ip.s_addr))){//(src_ip.s_addr + dst_ip.s_addr) ^ (src_ip.s_addr | src_ip.s_addr))){
-    	err(-1, "classify_packet(): Failed to create key for %d -> %d connection", src_ip.s_addr, dst_ip.s_addr);
+    	char errmsg[255];
+    	snprintf(errmsg, sizeof(errmsg), "classify_packet(): Failed to create key for %d -> %d connection", src_ip.s_addr, dst_ip.s_addr);
+    	perror(errmsg);
+    	raise(SIGTERM);
     }
     e.key = key;
     e.data = NULL;
@@ -229,7 +235,8 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
 	if(ep != NULL){
 		ep->data = e.data;
 	}else if(0 == hsearch_r(e, ENTER, &ep, connections_table)){
-		err(1, "classify_packet(): Failed updating connections table");
+		perror("classify_packet(): Failed updating connections table");
+		raise(SIGTERM);
 	}    
 	if(cur_t->patt.packet_patt.f_code == DNS_OK && t != NULL){
 		adapt_feature(&(t->patt.src_patt), &(cur_t->patt.src_patt));
@@ -241,8 +248,8 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
 		adapt_feature(&(t->patt.packet_patt), &(cur_t->patt.packet_patt));
 	} 
 	UNUSED_PARAM(dst_port);
-	/*if(pkt->answers == 0)
-		print_pattern_point(&(cur_t->patt), fp);*/
+	/*if(pkt->answers == 0)*/
+		print_pattern_point(&(cur_t->patt), fp);
 	PACKET_SCORE score = classify_pattern(&(cur_t->patt), tag);	 
  	free(cur_t);
  	return score;
@@ -340,7 +347,7 @@ void pattern_to_point(const pattern *pat, uint64_t *arr){
 void print_pattern_point(const pattern *pat, FILE *fp){
 	uint64_t arr[] = {0, 0, 0, 0, 0, 0, 0};
 	pattern_to_point(pat, arr);
-	fprintf(fp, "%ld, %ld, %ld, %ld, %ld, %ld, %ld\n", arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], arr[6]);
+	fprintf(fp, "%lld, %lld, %lld, %lld, %lld, %lld, %lld\n", arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], arr[6]);
 	print_pattern(pat);
 }
 
