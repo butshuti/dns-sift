@@ -1,14 +1,7 @@
 #include <Python.h>
-#include <signal.h>
 #include "qh_daemon.h"
 
-void sigHandle(int signum){
-	fprintf(stderr, "Interrupted: <%d>\n", signum);
-	if(signum != SIGINT){
-		fprintf(stderr, "ERROR (%d): %s\n", errno, strerror(errno));
-	}
-	qh_daemon_signal(signum);
-}
+
 static void thread_switch_wrapper(void (*f)(void)){
 	 	Py_BEGIN_ALLOW_THREADS
 	 	f();
@@ -17,10 +10,6 @@ static void thread_switch_wrapper(void (*f)(void)){
 	 
 static PyObject* daemon_start(PyObject *self, PyObject *args)
 {
-    signal(SIGSEGV, sigHandle);
-	 signal(SIGINT, sigHandle);
-	 signal(SIGTERM, sigHandle);
-	 signal(SIGHUP, sigHandle);
     pkt_divert_start(&thread_switch_wrapper);
     return Py_BuildValue("d", 0);
 }
