@@ -3,6 +3,8 @@ from dnssift.py.debug import *
 from threading import Thread
 import sys, os, socket, time, random, numpy as np
 from os.path import expanduser
+from sklearn import svm
+
 
 UDS_FILE_NAME = '/tmp/dnssift/pipe.uds'
 DUMMY_TOKEN = "no_token"
@@ -45,9 +47,10 @@ class ConnectionThread(Thread):
             finally:
                 pass
     
+            
 def reduceDim(arr, scale=0.1, offset=0):
     inDim = len(arr)
-    if inDim <= 2: return np.array(arr)
+    if inDim <= 200: return np.array(arr)
     x = 0
     y = 0
     dimRange = range(inDim)
@@ -55,26 +58,27 @@ def reduceDim(arr, scale=0.1, offset=0):
         x |= int(arr[i])<<i
     for i in dimRange[1::2]:
         y |= int(arr[i])<<i
-    return [x,y]
+    return np.array([x,y])
 
 def classify(point, tag):
     global classifier
     if classifier == None:
         raise Exception("Classifier not initialized.")
-    score = classifier.classify(reduceDim(point))
+    score = classifier.predict([reduceDim(point)])[0]
+    if score < 0: score = 0
     if udsClientConnection != None:
         try:
             msg = "{}#{}#{}#".format(point, tag, score)
             udsClientConnection.sendall(msg.ljust(DUMMY_MSG_LEN))
         except Exception, msg:
             print("udsClientConnection -- Error", msg)    
-    return score
+    return int(score)
 
 def classifyWithLabel(point, tag):
     global classifier
     if classifier == None:
         raise Exception("Classifier not initialized.")
-    return classifier.classifyWithLabel(point)
+    return classifier.predict([point])[0]
 
 def train(enableSubscribe=True):
     global classifier
@@ -87,21 +91,26 @@ def train(enableSubscribe=True):
     training_samples = [[reduceDim(x[0]), x[1]] for x in ds.training_samples]
     pos_samples = [[reduceDim(o[0]), o[1]] for o in ds.test_samples if o[1][1] == 'P']
     neg_samples = [[reduceDim(o[0]), o[1]] for o in ds.test_samples if o[1][1] == 'N']
-    pos_training_samples = [training_samples[i] for i in random.sample(range(len(training_samples)), len(training_samples))]    
+    pos_training_samples = training_samples[:]#[training_samples[i] for i in random.sample(range(len(training_samples)), len(training_samples))]    
     startTime = time.time()
-    k = len(training_samples)/20
-    classifier = Classifier(True)
-    classifier.train(training_samples, k)
+    classifier = svm.OneClassSVM(nu=0.001, kernel="rbf", gamma=0.0001)
+    svm_train_sample = np.array([o[0] for o in pos_training_samples])
+    svm_pos_test_sample = np.array([o[0] for o in pos_samples])
+    svm_neg_test_sample = np.array([o[0] for o in neg_samples])
+    startTime = time.time()
+    classifier.fit(svm_train_sample)
     endTime = time.time()
-    pos_test = classifier.classify_many(pos_samples)
-    neg_test = classifier.classify_many(neg_samples)
-    pos_pred_error = len([p for p in pos_test if p == 'N'])
-    neg_pred_error = len([p for p in neg_test if p == 'P'])
-    print("DNSSIFT pos_error: {}% -- ({} / {})".format(round(100.0*pos_pred_error/len(pos_samples), 2),
-                                                     pos_pred_error, len(pos_samples)))
-    print("DNSSIFT neg_error: {}% -- ({} / {})".format(round(100.0*neg_pred_error/len(neg_samples), 2), 
-                                                     neg_pred_error, len(neg_samples)))
-    print("DNSSIF training time: {} seconds".format(endTime-startTime))    
+    pred_train = classifier.predict(svm_train_sample)
+    pred_pos = classifier.predict(svm_pos_test_sample)
+    pred_test = classifier.predict(svm_neg_test_sample)
+    svm_train_pred_error = pred_train[pred_train == -1].size
+    svm_pos_pred_error = pred_pos[pred_pos == -1].size
+    svm_neg_pred_error = pred_test[pred_test == 1].size
+    print("SVM pos_error: {}% -- ({} / {})".format(round(100.0*svm_pos_pred_error/len(pos_samples), 2),
+                                                     svm_pos_pred_error, len(pos_samples)))
+    print("SVM neg_error: {}% -- ({} / {})".format(round(100.0*svm_neg_pred_error/len(neg_samples), 2), 
+                                                     svm_neg_pred_error, len(neg_samples)))
+    print("SVM training time: {} seconds".format(endTime-startTime))    
     print("Finished training.....")
     if enableSubscribe:
         print("Initializing subscription socket.....")

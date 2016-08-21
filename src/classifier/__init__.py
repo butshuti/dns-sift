@@ -1,1 +1,1 @@
-__all__ = ["py", "test_data"]
+__all__ = ["py", "data"]
