@@ -10,6 +10,7 @@ LDLIBS = -lnfnetlink -lnetfilter_queue -lpthread -lpcap -lpython2.7
 
 build : $(OBJECTS)
 	mkdir -p bin/dnssift
+	mkdir -p /tmp/dnssift
 	cp -r src/classifier/* bin/@package_name@
 	cp setup.py bin
 	cp start.py bin/@package_name@
