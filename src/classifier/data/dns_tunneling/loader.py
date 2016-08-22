@@ -17,10 +17,10 @@ class DataSet(object):
     def load(self):
         from os import listdir
         from os.path import isfile, join, dirname, realpath, basename
-        pos_dataset_dir = join(dirname(realpath(__file__)), 'legit')
+        pos_dataset_dir = join(dirname(realpath(__file__)), 'normal')
         neg_dataset_dir = join(dirname(realpath(__file__)), 'anomalous')
-        posfiles = [join(pos_dataset_dir, f) for f in listdir(pos_dataset_dir) if isfile(join(pos_dataset_dir, f))]
-        negfiles = [join(neg_dataset_dir, f) for f in listdir(neg_dataset_dir) if isfile(join(neg_dataset_dir, f))]
+        posfiles = [join(pos_dataset_dir, f) for f in listdir(pos_dataset_dir) if (isfile(join(pos_dataset_dir, f)) and f.endswith('.csv'))]
+        negfiles = [join(neg_dataset_dir, f) for f in listdir(neg_dataset_dir) if (isfile(join(neg_dataset_dir, f)) and f.endswith('.csv'))]
         training_samples = []
         test_samples = []
         for f in posfiles:

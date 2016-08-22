@@ -42,7 +42,7 @@ def kmeans(data, k, threshold=0.00001, iterNum=20):
     return (numpy.array([p.point for p in centers]), distorsion)
 
 def infer_radius(data, k):
-    center = numpy.mean(data, axis=0)
+    center = numpy.mean(data.astype(numpy.float), axis=0)
     diff = 0.
     for point in data:
 	diff += numpy.sum((point - center)**2)
