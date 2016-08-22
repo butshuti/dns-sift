@@ -9,8 +9,8 @@ LDFLAGS = -L/usr/local/lib -shared -rdynamic -Wl,-soname,$(LIBNAME) -Wl,--no-und
 LDLIBS = -lnfnetlink -lnetfilter_queue -lpthread -lpcap -lpython2.7
 
 build : $(OBJECTS)
-	mkdir -p bin/dnssift
-	mkdir -p /tmp/dnssift
+	mkdir -p bin/@package_name@
+	mkdir -p /tmp/@package_name@
 	cp -r src/classifier/* bin/@package_name@
 	cp setup.py bin
 	cp start.py bin/@package_name@
