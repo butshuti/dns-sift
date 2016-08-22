@@ -12,7 +12,7 @@ setup(name='@package_name@', version='1.0',
 	packages=['@package_name@', '@package_name@.py', '@package_name@.data', '@package_name@.data.dns_tunneling'],
 	ext_modules = [mdl],
 	package_data={
-	'@package_name@.data.dns_tunneling':['*'],	#CSV files for training the classifier
+	'@package_name@.data.dns_tunneling':['normal/*', 'anomalous/*'],	#CSV files for training the classifier
 	'@package_name@':['@exec_name@']	#C compiled binary
 	},
 	)
