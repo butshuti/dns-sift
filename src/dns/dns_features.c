@@ -94,6 +94,7 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
     dns_parse_errors err_code = parse_msg_unknown;
     src_ip = ip->ip_src;
     dst_ip = ip->ip_dst;
+
     switch(ip->ip_p)
     {
         case IP_PROTO_UDP:
@@ -174,7 +175,7 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
     		upstream_addr = src_ip.s_addr;
     	}
     	if(is_configured_upstream(upstream_addr)){
-    	cur_t->patt.dst_info.f_code = SERVER_SYS_CONF;
+    		cur_t->patt.dst_info.f_code = SERVER_SYS_CONF;
 		}else if(is_black_upstream(upstream_addr)){
 			cur_t->patt.dst_info.f_code = SERVER_BLACK;
 			cur_t->patt.dst_info.f_range = upstream_score(dst_ip.s_addr);

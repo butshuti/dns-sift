@@ -100,6 +100,22 @@ void update_avg(const char *domain, uint32_t new_val, double *adaptive_avg,
 	}
 }
 
+void model_packet_feature(const dns_packet *pkt, feature *ft){
+
+}
+
+void model_reply_feature(const dns_packet *pkt, feature *ft){
+
+}
+
+void model_src_feature(const dns_packet *pkt, feature *ft){
+
+}
+
+void model_dst_feature(const dns_packet *pkt, feature *ft){
+
+}
+
 void model_ttl_feature(uint32_t ttl, char *domain, feature *ft){
 	static double avg_flow_ttl = 60;
 	static double avg_ttl = 60;
@@ -119,39 +135,23 @@ void model_ttl_feature(uint32_t ttl, char *domain, feature *ft){
 	ft->uniqueness = (ABS(ttl - avg_flow_ttl) * ABS(ttl - avg_ttl)) / (1 + ft->f_range);
 }
 
-void model_packet_feature(const dns_packet *pkt, feature *ft){
-
-}
-
 void model_query_feature(const dns_packet *pkt, const unsigned int length, feature *ft){
 	static double avg_flow_qsize = 80;
 	static double avg_qsize = 80;
 	static uint64_t num_observations = 40000;
 	if(!pkt->questions){
-		//ft->f_code = REQUEST_WITH_DATA;
+		ft->f_code = REQUEST_WITH_DATA;
 		return;
 	}
 	update_avg(pkt->questions->name, length, &avg_flow_qsize, &avg_qsize, &num_observations);
-	if(length > (avg_flow_qsize * 1.5)){
+	if(length > (avg_flow_qsize * 2)){
 		ft->f_code = REQUEST_TOO_LARGE;
-		ft->f_range = 0x07 & (((int)((length * 1.5)/ avg_flow_qsize))<<1);
+		ft->f_range = 0x07 & (((int)(length / avg_flow_qsize)));
 	}else if( (pkt->answers != NULL) || (pkt->authority != NULL)
 		|| (pkt->additional != NULL)){
 		ft->f_code = REQUEST_WITH_DATA;
-		ft->f_range = 0x07 & (((int)((length * 1.5)/ avg_flow_qsize))<<1);
+		ft->f_range = 0x07 & (((int)((length * 1.5)/ avg_flow_qsize)));
 	}
-}
-
-void model_reply_feature(const dns_packet *pkt, feature *ft){
-
-}
-
-void model_src_feature(const dns_packet *pkt, feature *ft){
-
-}
-
-void model_dst_feature(const dns_packet *pkt, feature *ft){
-
 }
 
 void model_qname_feature(const char *qname, feature *ft){
@@ -165,15 +165,15 @@ void model_qname_feature(const char *qname, feature *ft){
 	domain_history *history;
 	get_domain_history(qname, &history);
 	if(history != NULL){
-		if(history->len_avg > (avg_flow_len * 1.5)){
+		if(history->len_avg > (avg_flow_len * 3)){
 			ft->f_code = LABELS_TOO_LARGE;
-			ft->f_range = 0x07 & (((int)((history->len_avg * 1.5)/ avg_flow_len))<<1);
-		}else if((history->query_rate > (avg_flow_query_rate_per_domain * 1.5)) && (history->len_self_variation < 50)){
+			ft->f_range = 0x07 & (((int)((history->len_avg * 3)/ avg_flow_len))<<1);
+		}else if((history->query_rate > (avg_flow_query_rate_per_domain * 2)) && (history->len_self_variation < 50)){
 			ft->f_code = DOMAIN_HIGH_RATE;
-			ft->f_range = 0x07 & (((int)((history->query_rate * 1.5)/ avg_flow_query_rate_per_domain))<<1);
+			ft->f_range = 0x07 & (((int)((history->query_rate * 2)/ avg_flow_query_rate_per_domain))<<1);
 		}else if((history->nonlc_avg_rate > (avg_flow_nonlc_rate * 1.5)) && (history->nonlc_rate_self_variation < 50)){
 			ft->f_code = LABELS_STRANGE_ENCODING;
-			ft->f_range = 0x07 & (((int)((history->nonlc_avg_rate * 1.5)/ avg_flow_nonlc_rate))<<1);
+			ft->f_range = 0x07 & (((int)((history->nonlc_avg_rate * 3)/ avg_flow_nonlc_rate))<<1);
 		}else if((history->len_self_variation < 25 || history->nonlc_rate_self_variation < 50 )
 			&& (history->query_rate_self_variation < 50) ){
 			ft->f_code = LABELS_TOO_UNIFORM;
