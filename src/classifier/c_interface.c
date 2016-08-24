@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <Python.h>
+#include <signal.h>
 
 static PyObject* classifyFunction = NULL;
 
@@ -30,25 +31,26 @@ int train(void)
     if(trainFunction == NULL)
     {
     	PyErr_Print();
-    	exit(-1);
+    	raise(SIGTERM);
     }
     classifyFunction = PyObject_GetAttrString(classifier_module, (char*)"classify");
     if(classifyFunction == NULL)
     {
     	PyErr_Print();
     	Py_CLEAR(trainFunction);
-    	exit(-1);
+    	raise(SIGTERM);
     }
     PyObject* temp = PyObject_CallObject(trainFunction, NULL);
     if(temp == NULL){
     	PyErr_Print();
     	Py_CLEAR(trainFunction);
     	Py_CLEAR(classifyFunction);
-    	exit(-1);
+    	raise(SIGTERM);
     }
+    int success = PyInt_AsLong(temp);
     Py_CLEAR(temp);
-    fprintf(stderr, "c_interface: Training ending?: <%s>.\n", Py_IsInitialized() ? "TRUE" : "FALSE");
-    return classifyFunction != NULL;
+    fprintf(stderr, "c_interface: Training ending?: <%s>.\n", (Py_IsInitialized() && success == 0) ? "TRUE" : "FALSE");
+    return classifyFunction != NULL && success == 0;
 }
 
 int classify(int arr[], int size, const char *tag)
