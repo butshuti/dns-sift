@@ -25,7 +25,7 @@ def refitMinMax(x, y):
 
 def reduceDim(arr, scale=0.1, offset=0):
     inDim = len(arr)
-    if inDim <= 2: return np.array(arr)
+    if inDim <= 20: return np.array(arr)
     x = 0
     y = 0
     dimRange = range(inDim)
@@ -36,15 +36,20 @@ def reduceDim(arr, scale=0.1, offset=0):
     refitMinMax(x,y)
     return np.array([x,y])
 
-clf = svm.OneClassSVM(nu=0.0005, kernel="rbf", gamma=0.000001)
+clf = svm.OneClassSVM(nu=0.01, kernel="rbf", gamma=0.0001)
 """Load training data set"""
 from dnssift.data.dns_tunneling import loader
 ds = loader.DataSet()
+#extra_pos = ds.loadDs("/home/hazirex/dump/datapoints_pos.csv", "P")
+#extra_neg = ds.loadDs("/home/hazirex/dump/datapoints_neg.csv", "N")
 """Generate model"""
 pos_samples = [[reduceDim(o[0]), o[1]] for o in ds.test_samples if o[1][1] == 'P']
 neg_samples = [[reduceDim(o[0]), o[1]] for o in ds.test_samples if o[1][1] == 'N']
+#pos_samples.extend([[reduceDim(o[0]), o[1]] for o in extra_pos])
+#neg_samples.extend([[reduceDim(o[0]), o[1]] for o in extra_neg])
 training_samples = [[reduceDim(o[0]), o[1]] for o in ds.training_samples if o[1][1] == 'P']
 pos_training_samples = [training_samples[i] for i in random.sample(range(len(training_samples)), len(training_samples))]
+pos_training_samples = pos_training_samples[0::10]
 
 print("Training sample size: {} out of {}; #pos: {}; #neg: {}".format(len(pos_training_samples), 
                                                                       len(ds.training_samples), len(pos_samples), len(neg_samples)))
@@ -81,7 +86,7 @@ print("DNSSIFT pos_error: {}% -- ({} / {})".format(round(100.0*pos_pred_error/le
 print("DNSSIFT neg_error: {}% -- ({} / {})".format(round(100.0*neg_pred_error/len(neg_samples), 2), 
                                                  neg_pred_error, len(neg_samples)))
 print("DNSSIF training time: {} seconds".format(endTime-startTime))
-
+"""
 learntXMin, learntXMax = (learntXMin-50, learntXMax+50)
 learntYMin, learntYMax = (learntYMin-50, learntYMax+50)
 xx, yy = np.meshgrid(np.linspace(learntXMin, learntXMax, 500), np.linspace(learntYMin, learntYMax, 500))
@@ -109,4 +114,4 @@ plt.xlabel(
     % (round(100.0*svm_train_pred_error/len(pos_training_samples), 2), 
        round(100.0*svm_pos_pred_error/len(pos_samples), 2), 
        round(100.0*svm_neg_pred_error/len(neg_samples), 2)))
-plt.show()
+plt.show()"""

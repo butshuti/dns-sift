@@ -5,7 +5,7 @@ def parse_file(fname):
         reader = csv.reader(csvfile, delimiter=',')
         ret = []
         for row in reader:
-            ret.append(row)
+            ret.append([float(x) for x in row[:-1]])
     return ret
 
 class DataSet(object):
@@ -36,6 +36,11 @@ class DataSet(object):
         observations = test_samples[:]
         self.training_samples = numpy.array(training_samples)
         self.test_samples = numpy.array(observations)
-
+    
+    def loadDs(self, path, tag):
+        from os.path import basename
+        dat = parse_file(path)
+        return numpy.array([(row, (basename(path), tag)) for row in dat])
+    
 if __name__ == '__main__':
     DataSet()
