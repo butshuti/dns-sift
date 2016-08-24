@@ -15,6 +15,7 @@
 #include "dns_features.h"
 #include "dns_policies.h"
 #include "dns_parse.h"
+#include "domain_utils.h"
 #include "routing.h"
 
 
@@ -36,9 +37,9 @@ static struct hsearch_data *high_level_domains_table = NULL;
 
 void dump(const unsigned char *data_buffer, const unsigned int length);
 void dump_ascii(const unsigned char *data_buffer, const unsigned int length);
-void print_pattern(const pattern*);
+void print_pattern(const pattern*, char *tag);
 void extract_features(const dns_packet *pkt, const unsigned int length, pattern *pat);
-void print_pattern_point(const pattern *pat, FILE *fp);
+void print_pattern_point(const pattern *pat, FILE *fp, char *tag);
 void print_feature(const char *label, const feature ft);
 void adapt_feature(const feature *prev, feature *cur);
 
@@ -112,12 +113,12 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
             struct tcphdr *tcp;
     	    tcp = (struct tcphdr*) ((unsigned long) ip + (ip->ip_hl << 2));
     	    src_port = tcp->source;
-            dst_port = tcp->dest;
+          dst_port = tcp->dest;
     	    uint8_t *payload = (uint8_t*)tcp + (tcp->doff << 2);
     	    if(ntohs(ip->ip_len) - ((ip->ip_hl << 2) + (tcp->doff << 2)) > 0){
     	        //Payload is not empty
     	        err_code = dns_parse((uint8_t *)payload+2, ntohs(ip->ip_len) - ((ip->ip_hl << 2) + (tcp->doff << 2)), &pkt);
-    	        printf("IP_LEN: %d, IPHDR_LEN: %d,  TCHHDR_LEN: %d, DNS_LEN: %d----------------\n", ntohs(ip->ip_len), (ip->ip_hl << 2), (tcp->doff << 2), ntohs(ip->ip_len) - ((ip->ip_hl << 2) + (tcp->doff << 2)));
+    	        //printf("IP_LEN: %d, IPHDR_LEN: %d,  TCHHDR_LEN: %d, DNS_LEN: %d----------------\n", ntohs(ip->ip_len), (ip->ip_hl << 2), (tcp->doff << 2), ntohs(ip->ip_len) - ((ip->ip_hl << 2) + (tcp->doff << 2)));
     	    }else{
     	        //This packet may be part of the connection handshake or tear-down? Anyway not useful.
     	    }
@@ -151,7 +152,6 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
     }
     if(pkt == NULL){
     	cur_t->patt.packet_patt.f_code = DNS_NOT_DNS;
-    	//errx(-1, "Packet is invalid!");  
     	snprintf(tag, 255, "%u;%s", drctn == OUT ? dst_ip.s_addr : src_ip.s_addr, INVALID_DNS_QNAME_TAG);
     	PACKET_SCORE score = classify_pattern(&(cur_t->patt), tag);  	 
     	free(cur_t);
@@ -193,7 +193,6 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
     }
     e.key = key;
     e.data = NULL;
-    //printf("KEY (%s): %s\n", e.key, drctn == IN ? "IN" : "OUT");
     cur_t->id = pkt->header->id;
     if(0 != hsearch_r(e, FIND, &ep, connections_table)){ //Entry found
     	t = (dnsTransaction*)(ep->data);
@@ -212,7 +211,7 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
     		if(t->port == src_port){
     			cur_t->src_port_count = t->src_port_count + 1;
     		}else{
-    			cur_t->src_port_count = 0;
+    			cur_t->src_port_count = t->src_port_count;
     			cur_t->patt.src_patt.f_range = 0;
     		}
     		if(t->id == pkt->header->id){
@@ -249,9 +248,14 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
 		adapt_feature(&(t->patt.packet_patt), &(cur_t->patt.packet_patt));
 	} 
 	UNUSED_PARAM(dst_port);
-	/*if(pkt->answers == 0)*/
-		print_pattern_point(&(cur_t->patt), fp);
 	PACKET_SCORE score = classify_pattern(&(cur_t->patt), tag);	 
+	char *qname = strdup(pkt->questions ? pkt->questions->name : "NULL");
+	reverse(qname);		
+	char classif_log[255];
+	snprintf(classif_log, sizeof(classif_log), "SCORE: %d -- %s / %s", score, pkt->answers == NULL ? "Query" : "Reply", qname);
+	free(qname);
+	print_pattern_point(&(cur_t->patt), fp, classif_log);
+	//print_dns(pkt);
  	free(cur_t);
  	return score;
 }
@@ -336,24 +340,24 @@ void feature_to_point(const feature ft, uint64_t *arr, uint32_t idx){
 }
 
 void pattern_to_point(const pattern *pat, uint64_t *arr){
-	feature_to_point(pat->src_patt, arr, 6);
-	feature_to_point(pat->dst_info, arr, 5);
-	feature_to_point(pat->packet_patt, arr, 4);
-	feature_to_point(pat->query_patt, arr, 3);
-	feature_to_point(pat->reply_patt, arr, 2);
-	feature_to_point(pat->ttl_patt, arr, 1);
-	feature_to_point(pat->qname_patt, arr, 0);
+	feature_to_point(pat->src_patt, arr, 0);
+	feature_to_point(pat->dst_info, arr, 1);
+	feature_to_point(pat->packet_patt, arr, 2);
+	feature_to_point(pat->qname_patt, arr, 3);
+	feature_to_point(pat->query_patt, arr, 4);
+	feature_to_point(pat->reply_patt, arr, 5);
+	feature_to_point(pat->ttl_patt, arr, 6);
 }
 
-void print_pattern_point(const pattern *pat, FILE *fp){
+void print_pattern_point(const pattern *pat, FILE *fp, char *tag){
 	uint64_t arr[] = {0, 0, 0, 0, 0, 0, 0};
 	pattern_to_point(pat, arr);
-	fprintf(fp, "%lld, %lld, %lld, %lld, %lld, %lld, %lld\n", arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], arr[6]);
-	print_pattern(pat);
+	fprintf(fp, "%ld, %ld, %ld, %ld, %ld, %ld, %ld, %s\n", arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], arr[6], tag);
+	print_pattern(pat, tag);
 }
 
-void print_pattern(const pattern *pat){
-	printf("Pattern: <");
+void print_pattern(const pattern *pat, char *tag){
+	printf("<");
 	print_feature("SRC", pat->src_patt);
 	print_feature("DST", pat->dst_info);
 	print_feature("PACKET", pat->packet_patt);
@@ -361,7 +365,7 @@ void print_pattern(const pattern *pat){
 	print_feature("REPLY", pat->reply_patt);
 	print_feature("TTL", pat->ttl_patt);
 	print_feature("QNAME", pat->qname_patt);
-	printf(">\n");
+	printf(">   ---  %s\n", tag);
 }
 
 void extract_features(const dns_packet *pkt, const unsigned int length, pattern *pat){
