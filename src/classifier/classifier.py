@@ -46,7 +46,7 @@ class ConnectionThread(Thread):
                 pass
     
 def reduceDim(arr, scale=0.1, offset=0):
-    inDim = len(arr)
+    """inDim = len(arr)
     if inDim <= 2: return np.array(arr)
     x = 0
     y = 0
@@ -55,7 +55,8 @@ def reduceDim(arr, scale=0.1, offset=0):
         x |= int(arr[i])<<i
     for i in dimRange[1::2]:
         y |= int(arr[i])<<i
-    return [x,y]
+    return [x,y]"""
+    return arr
 
 def classify(point, tag):
     global classifier
@@ -77,6 +78,7 @@ def classifyWithLabel(point, tag):
     return classifier.classifyWithLabel(point)
 
 def train(enableSubscribe=True):
+    """Initialize classifier. Returns 0 on success."""
     global classifier
     print("Started training.....")
     """Load training data set"""
@@ -84,12 +86,15 @@ def train(enableSubscribe=True):
     ds = loader.DataSet()
     """Generate model ---
     Train with 'normal DNS' samles only"""
+    if len(ds.training_samples) == 0:
+        print("Training dataset empty.\n")
+        return -1
     training_samples = [[reduceDim(x[0]), x[1]] for x in ds.training_samples]
     pos_samples = [[reduceDim(o[0]), o[1]] for o in ds.test_samples if o[1][1] == 'P']
     neg_samples = [[reduceDim(o[0]), o[1]] for o in ds.test_samples if o[1][1] == 'N']
     pos_training_samples = [training_samples[i] for i in random.sample(range(len(training_samples)), len(training_samples))]    
     startTime = time.time()
-    k = len(training_samples)/20
+    k = 15#len(training_samples)/20
     classifier = Classifier(True)
     classifier.train(training_samples, k)
     endTime = time.time()
@@ -109,7 +114,7 @@ def train(enableSubscribe=True):
         ct.setDaemon(True)
         ct.start()
         print("Subscription socket created at {}.....".format(UDS_FILE_NAME))
-    return 0       
+    return 0
                 
 def randTest():
     import random

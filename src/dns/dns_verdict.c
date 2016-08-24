@@ -3,9 +3,6 @@
 #include "dns_features.h"         
 #include "dns_verdict.h"
 
-extern int train(void);
-extern int classify(int arr[], int size);
-
 /*
 Handle incoming packet and return verdict.
 Use features in pkt and local policies to decide whether the packet passes or gets dropped.

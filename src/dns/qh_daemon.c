@@ -75,9 +75,9 @@ void sigHandle(int signum){
 
 void pkt_divert_start(void (*thread_switch_wrapper)(void (*)(void))){
 	signal(SIGSEGV, sigHandle);
-    	signal(SIGINT, sigHandle);
-    	signal(SIGTERM, sigHandle);
-    	signal(SIGHUP, sigHandle);
+ 	signal(SIGINT, sigHandle);
+ 	signal(SIGTERM, sigHandle);
+ 	signal(SIGHUP, sigHandle);
 	int fd_in = start_divert(&nfqhIN, &inQ, 6000, NULL);
 	fprintf(stderr, "INTITIATING QUEUE: %d\n", fd_in);
 	if (getuid() == 0) {
@@ -90,7 +90,10 @@ void pkt_divert_start(void (*thread_switch_wrapper)(void (*)(void))){
 	if (fcntl(fd_in, F_SETFL, flags | O_NONBLOCK) == -1){
 		err(1, "fcntl()");
 	}*/
-	train();
+	if(!train()){
+		fprintf(stderr, "Error training DNS classifier.\nExiting.\n\n");
+		exit(-1);
+	}
 	iptables_start_divert();
 	while(!pending_signal){
 		if(thread_switch_wrapper){

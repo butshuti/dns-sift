@@ -1,4 +1,5 @@
 #include <string.h>
+#include "domain_utils.h"
 
 #define MAX_STR_LEN 256
 

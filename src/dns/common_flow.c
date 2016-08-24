@@ -2,6 +2,7 @@
 #include <string.h>
 #include <errno.h>
 #include <err.h>
+#include <signal.h>
 #include <strings.h>
 #include <stdlib.h>
 #include <netinet/ip.h>
@@ -47,7 +48,8 @@ int get_domain_history(const char *qname, domain_history **history){
 		memset(resolved_domains, 0, sizeof(struct hsearch_data));
 		if(0 == hcreate_r(MAX_DOMAINS_TABLE_SIZE, resolved_domains)){
 			log_critical("hcreate_r: %s\n", strerror(errno));
-			err(-1, "get_domain_history(): error initializing hash table");
+			perror("get_domain_history(): error initializing hash table");
+			raise(SIGTERM);
 		}
 	}
 	const char *name = qname;
@@ -67,25 +69,22 @@ int get_domain_history(const char *qname, domain_history **history){
 		temp[len] = '\0';
 		name = temp;
 	}
-	ENTRY e, *ep;
+	ENTRY e, *ep = NULL;
 	e.key = (char*)name;
-	e.data = (char*)qname;
-	int found = 0;
 	if(0 != hsearch_r(e, FIND, &ep, resolved_domains)){
 		*history = (domain_history*)ep->data;
-		found =  (*history != NULL);
 	}else{
-		*history = malloc(sizeof(domain_history));
+		*history = calloc(1, sizeof(domain_history));
 	}
 	if(*history != NULL){
 		model_domain_history(qname, *history);
-		if(ep != NULL){
-			ep->data = *history;
-		}else if(0 == hsearch_r(e, ENTER, &ep, resolved_domains)){
-			err(1, "get_domain_history(): Failed updating domains table");
+		e.data = *history;
+		if(0 == hsearch_r(e, ENTER, &ep, resolved_domains)){
+			perror("get_domain_history(): Failed updating domains table");
+			raise(SIGTERM);
 		}
 	}
-	return found;
+	return *history != NULL;
 }
 
 void update_avg(const char *domain, uint32_t new_val, double *adaptive_avg, 
@@ -174,10 +173,12 @@ void model_qname_feature(const char *qname, feature *ft){
 		}else if((history->nonlc_avg_rate > (avg_flow_nonlc_rate * 1.5)) && (history->nonlc_rate_self_variation < 50)){
 			ft->f_code = LABELS_STRANGE_ENCODING;
 			ft->f_range = 0x07 & (((int)((history->nonlc_avg_rate * 3)/ avg_flow_nonlc_rate))<<1);
+			printf("STRANGE_ENCODING: %s -- nonlc_avg_rate: %d/%d, history->nonlc_rate_self_variation : %d\n", qname, history->nonlc_avg_rate, history->nonlc_rate_self_variation);
 		}else if((history->len_self_variation < 25 || history->nonlc_rate_self_variation < 50 )
 			&& (history->query_rate_self_variation < 50) ){
 			ft->f_code = LABELS_TOO_UNIFORM;
 			ft->f_range = 0x07 & (history->query_rate_self_variation | history->nonlc_rate_self_variation | history->len_self_variation);
+			printf("TOO_UNIFORM: %s -- rate_self_variation: %d, len_self_variation: %d, nlc: %d\n", qname, history->query_rate_self_variation, history->len_self_variation, history->nonlc_rate_self_variation);
 		}else{
 			ft->f_code = LABELS_OK;
 		}
@@ -185,7 +186,8 @@ void model_qname_feature(const char *qname, feature *ft){
 		update_avg(qname, history->len_avg, &avg_flow_len, &avg_len, &num_observations);
 		update_avg(qname, history->nonlc_avg_rate, &avg_flow_nonlc_rate, &avg_nonlc_rate, &num_observations);
 	}else{
-		err(-1, "get_domain_history(): error retrieving domain history");
+		perror("model_qname_feature(): error retrieving domain history");
+		raise(SIGTERM);
 	}
 }
 
@@ -203,6 +205,9 @@ void model_domain_history(const char *qname, domain_history *history){
 		history->len_avg = len;
 		history->query_avg_rate = 1;
 		history->nonlc_avg_rate = nonlc / len;
+		history->query_rate_self_variation = 100;
+		history->len_self_variation = 100;
+		history->nonlc_rate_self_variation = 100;
 	}else{
 		history->query_rate++;
 	}
@@ -215,15 +220,17 @@ void model_domain_history(const char *qname, domain_history *history){
 	history->len_self_variation = (history->len_self_variation + (1+ABS(history->len_avg - len)/(1+history->len_avg)))/2;
 	
 	/*Nonlc freq*/
-	history->nonlc_avg_rate = (history->nonlc_avg_rate + (nonlc/len)) / 2;
-	history->nonlc_rate_self_variation = (history->nonlc_avg_rate + (1+ABS(history->nonlc_avg_rate - (nonlc/len))/(1+history->nonlc_avg_rate)))/2;
+	if(nonlc > 1){
+		history->nonlc_avg_rate = (history->nonlc_avg_rate + (nonlc/len)) / 2;
+		history->nonlc_rate_self_variation = (history->nonlc_avg_rate + (1+ABS(history->nonlc_avg_rate - (nonlc/len))/(1+history->nonlc_avg_rate)))/2;
+	}
 }
 
 PACKET_SCORE  classify_pattern(const pattern *pat, const char *tag){
 	uint64_t arr[7] = {0, 0, 0, 0, 0, 0, 0};
 	pattern_to_point(pat, arr);
 	int score = classify(arr, 7, tag);
-	return score == 0 ? SCORE_NORMAL : SCORE_OUTSTANDING;
+	return score == 1 ? SCORE_NORMAL : SCORE_OUTSTANDING;
 }
 
 #endif
