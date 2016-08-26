@@ -6,6 +6,7 @@ from cluster import *
 from debug import *
 from os.path import expanduser
 import sys, socket, struct
+import dnssift.configutils as cfg
 
 
 NODES = 'nodes'
@@ -24,7 +25,8 @@ GROUP = 'group'
 SHAPE = 'shape'
 LEVEL = 'level'
 PROFILE_VIZ_DUMP = '/tmp/dnssift'
-UDS_FILE_NAME = '/var/run/dnssift/reporter.sock'
+cfgParams = cfg.parseConf()
+UDS_FILE_NAME = cfgParams["uds_sock_file"]
 DUMMY_TOKEN = "no_token"
 DUMMY_TOKEN_CONF = "{}=>{}".format(DUMMY_TOKEN, DUMMY_TOKEN)
 DUMMY_MSG_LEN = 64  

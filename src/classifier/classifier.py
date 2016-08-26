@@ -1,10 +1,12 @@
 from dnssift.py.classifier import *
 from dnssift.py.debug import *
+import dnssift.configutils as cfg
 from threading import Thread
 import sys, os, socket, time, random, numpy as np
 from os.path import expanduser
 
-UDS_FILE_NAME = '/var/run/dnssift/reporter.sock'
+cfgParams = cfg.parseConf()
+UDS_FILE_NAME = cfgParams["uds_sock_file"]
 DUMMY_TOKEN = "no_token"
 DUMMY_TOKEN_CONF = "{}=>{}".format(DUMMY_TOKEN, DUMMY_TOKEN)
 DUMMY_MSG_LEN = 64

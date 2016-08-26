@@ -60,5 +60,7 @@ AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([setup.py])
 AC_CONFIG_FILES([start.sh])
 AC_CONFIG_FILES([start.py])
+AC_CONFIG_FILES([configutils.py])
+AC_CONFIG_FILES([engine.conf])
 
 AC_OUTPUT

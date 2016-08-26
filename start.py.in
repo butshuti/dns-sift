@@ -1,2 +1,9 @@
-import dnssift.daemon as dnssift_daemon
+import @package_name@.daemon as dnssift_daemon
+import @package_name@.configutils cfg
+import os
+
+configs = cfg.parseConf()
+with open(configs["filter_daemon_pidfile"], "w") as pidfile:
+	pidfile.write(os.getpid())
+	pidfile.close()
 dnssift_daemon.start_daemon()

@@ -13,6 +13,7 @@ build : $(OBJECTS)
 	cp -r src/classifier/* bin/@package_name@
 	cp setup.py bin
 	cp start.py bin/@package_name@
+	cp configutils.py bin/@package_name@
 	$(MAKE) -C src/classifier
 	#$(CC) $(OBJECTS) src/classifier/classifier_interface.o -o $(OBJECTNAME) $(LDLIBS) $(CFLAGS)
 	cp $(SOURCES) bin/@package_name@
@@ -21,13 +22,14 @@ build : $(OBJECTS)
 
 install : build
 	mkdir -p /var/run/@package_name@
+	install -DT engine.conf /etc/@package_name@conf/engine.conf
 	cd bin && python setup.py install
 	
 test :
 	python -m @package_name@.classifier
 	
 clean :
-	rm -rf $(EXEC_NAME) $(LIB_NAME) *.o *~ src/dns/*.o src/dns/*~ bin setup.py start.py
+	rm -rf $(EXEC_NAME) $(LIB_NAME) *.o *~ src/dns/*.o src/dns/*~ bin setup.py start.py configutils.py engine.conf
 	$(MAKE) -C src/classifier clean
 .PHONY: clean
 
