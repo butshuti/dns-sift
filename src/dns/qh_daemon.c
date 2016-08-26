@@ -66,9 +66,9 @@ void qh_daemon_signal(int signum){
 }
 
 void sigHandle(int signum){
-	fprintf(stderr, "Interrupted: <%d>\n", signum);
-	if(signum != SIGINT){
-		fprintf(stderr, "ERROR (%d): %s\n", errno, strerror(errno));
+	fprintf(stderr, "Received signal %d.\n", signum);
+	if(signum != SIGINT && signum != SIGUSR1){
+		fprintf(stderr, "Error (%d): %s\n", errno, strerror(errno));
 	}
 	qh_daemon_signal(signum);
 }
@@ -78,6 +78,7 @@ void pkt_divert_start(void (*thread_switch_wrapper)(void (*)(void))){
  	signal(SIGINT, sigHandle);
  	signal(SIGTERM, sigHandle);
  	signal(SIGHUP, sigHandle);
+ 	signal(SIGUSR1, sigHandle);
 	int fd_in = start_divert(&nfqhIN, &inQ, 6000, NULL);
 	fprintf(stderr, "INTITIATING QUEUE: %d\n", fd_in);
 	if (getuid() == 0) {
