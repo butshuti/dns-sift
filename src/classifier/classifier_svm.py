@@ -6,7 +6,7 @@ from os.path import expanduser
 from sklearn import svm
 
 
-UDS_FILE_NAME = '/tmp/dnssift/pipe.uds'
+UDS_FILE_NAME = '/var/run/dnssift/reporter.sock'
 DUMMY_TOKEN = "no_token"
 DUMMY_TOKEN_CONF = "{}=>{}".format(DUMMY_TOKEN, DUMMY_TOKEN)
 DUMMY_MSG_LEN = 64
