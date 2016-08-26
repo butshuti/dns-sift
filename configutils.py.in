@@ -1,6 +1,6 @@
 def parseConf():
     ret = {}
-    with open("/etc/@package_name@conf/@package_name@.conf", "r") as configfile:
+    with open("/etc/@package_name@conf/engine.conf", "r") as configfile:
         for line in configfile.readlines():
             line = line.strip()
             toks = line.split(":")
