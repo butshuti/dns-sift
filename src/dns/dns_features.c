@@ -174,14 +174,13 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
     	}else{
     		upstream_addr = src_ip.s_addr;
     	}
-    	if(is_configured_upstream(upstream_addr)){
-    		cur_t->patt.dst_info.f_code = SERVER_SYS_CONF;
-		}else if(is_black_upstream(upstream_addr)){
+    	cur_t->patt.dst_info.f_range = upstream_score(dst_ip.s_addr);
+    	if(is_black_upstream(upstream_addr)){
 			cur_t->patt.dst_info.f_code = SERVER_BLACK;
-			cur_t->patt.dst_info.f_range = upstream_score(dst_ip.s_addr);
+		}else if(is_configured_upstream(upstream_addr)){
+    		cur_t->patt.dst_info.f_code = SERVER_SYS_CONF;
 		}else{
 			cur_t->patt.dst_info.f_code = SERVER_UNKNOWN;
-			cur_t->patt.dst_info.f_range = upstream_score(dst_ip.s_addr);
 		}
     }    
     char key[32];
