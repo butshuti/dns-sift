@@ -173,12 +173,10 @@ void model_qname_feature(const char *qname, feature *ft){
 		}else if((history->nonlc_avg_rate > (avg_flow_nonlc_rate * 1.5)) && (history->nonlc_rate_self_variation < 50)){
 			ft->f_code = LABELS_STRANGE_ENCODING;
 			ft->f_range = 0x07 & (((int)((history->nonlc_avg_rate * 3)/ avg_flow_nonlc_rate))<<1);
-			printf("STRANGE_ENCODING: %s -- nonlc_avg_rate: %d/%d, history->nonlc_rate_self_variation : %d\n", qname, history->nonlc_avg_rate, history->nonlc_rate_self_variation);
 		}else if((history->len_self_variation < 25 || history->nonlc_rate_self_variation < 50 )
 			&& (history->query_rate_self_variation < 50) ){
 			ft->f_code = LABELS_TOO_UNIFORM;
 			ft->f_range = 0x07 & (history->query_rate_self_variation | history->nonlc_rate_self_variation | history->len_self_variation);
-			printf("TOO_UNIFORM: %s -- rate_self_variation: %d, len_self_variation: %d, nlc: %d\n", qname, history->query_rate_self_variation, history->len_self_variation, history->nonlc_rate_self_variation);
 		}else{
 			ft->f_code = LABELS_OK;
 		}
