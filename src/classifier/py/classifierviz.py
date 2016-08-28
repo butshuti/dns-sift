@@ -88,7 +88,7 @@ class ClusterViz(Cluster):
         self.graph = {}
         self.runIdx = 0
         self.initSize = len(self.clusterNodes)
-        colors = COLORS
+        self.colors = COLORS
         self.colors.pop('indigo', None)
         self.colors.pop('darkgreen', None)
         self.reservedColor = self.colors[1]       
