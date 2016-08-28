@@ -24,6 +24,7 @@ AC_PROG_LN_S
 
 # Checks dependencies.
 AC_CHECK_LIB([netfilter_queue], [nfq_open],[], AC_MSG_FAILURE([libnetfilter_queue is required but not found on the system. Please install it first.], 1))
+AC_PYTHON_MODULE(tkinter)
 AC_PYTHON_MODULE(numpy)
 AC_PYTHON_MODULE(matplotlib)
 
