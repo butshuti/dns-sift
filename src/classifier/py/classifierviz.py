@@ -1,12 +1,12 @@
-import numpy, vectorutils, time, sys, threading, random
-import visjsadapter
+import numpy, time, sys, threading, random
 import cherrypy, os, urllib, pickle
 import matplotlib, six
-from cluster import *
-from debug import *
+from dnssift.py.cluster import *
+from dnssift.py.debug import *
 from os.path import expanduser
 import sys, socket, struct
 import dnssift.configutils as cfg
+from  dnssift.py import vectorutils, visjsadapter
 
 
 NODES = 'nodes'
@@ -166,12 +166,17 @@ class EventMap(object):
         
         
 if __name__ == '__main__':
+    import dnssift.configutils as cfg
+    configs = cfg.parseConf()
+    with open(configs["reporter_daemon_pidfile"], "w") as pidfile:
+        pidfile.write(str(os.getpid()))
+        pidfile.close()    
     debug_set(False)
     evtMap = EventMap()
     udsDataCollector = UDSEventsClient(UDS_FILE_NAME, evtMap)
     try:
         udsDataCollector.start()
-        cherrypy.quickstart(evtMap, '/', '../config/service.conf')        
+        cherrypy.quickstart(evtMap, '/', '/etc/@package_name@conf/cherrypy.conf')        
     except KeyboardInterrupt:    
         evtMap.commit()
         udsDataCollector.join()
