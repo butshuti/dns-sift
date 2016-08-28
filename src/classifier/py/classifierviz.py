@@ -29,23 +29,20 @@ UDS_FILE_NAME = cfgParams["uds_sock_file"]
 DUMMY_TOKEN = "no_token"
 DUMMY_TOKEN_CONF = "{}=>{}".format(DUMMY_TOKEN, DUMMY_TOKEN)
 DUMMY_MSG_LEN = 64  
-COLORS = ['indigo', 'gold', 'hotpink', 'firebrick', 'indianred', 'sage', 'yellow', 'mistyrose', 'darkolivegreen', 'olive', 'darkseagreen', 
-          'pink', 'tomato', 'lightcoral', 'orangered', 'navajowhite', 'lime', 'palegreen', 'darkslategrey', 'greenyellow', 
-          'burlywood', 'seashell', 'mediumspringgreen', 'fuchsia', 'papayawhip', 'blanchedalmond', 'chartreuse', 'dimgray', 
-          'black', 'peachpuff', 'springgreen', 'aquamarine', 'white', 'orange', 'lightsalmon', 'darkslategray', 'brown', 'ivory', 
-          'dodgerblue', 'peru', 'darkgrey', 'lawngreen', 'chocolate', 'crimson', 'forestgreen', 'slateblue', 'lightseagreen', 
-          'cyan', 'mintcream', 'silver', 'antiquewhite', 'mediumorchid', 'skyblue', 'gray', 'darkturquoise', 'goldenrod', 
-          'darkgreen', 'floralwhite', 'darkviolet', 'darkgray', 'moccasin', 'saddlebrown', 'grey', 'darkslateblue', 'lightskyblue', 
-          'lightpink', 'mediumvioletred', 'slategrey', 'red', 'deeppink', 'limegreen', 'darkmagenta', 'palegoldenrod', 'plum', 
-          'turquoise', 'lightgrey', 'lightgoldenrodyellow', 'darkgoldenrod', 'lavender', 'maroon', 'yellowgreen', 'sandybrown', 
-          'thistle', 'violet', 'navy', 'magenta', 'dimgrey', 'tan', 'rosybrown', 'olivedrab', 'blue', 'lightblue', 'ghostwhite', 
-          'honeydew', 'cornflowerblue', 'linen', 'darkblue', 'powderblue', 'seagreen', 'darkkhaki', 'snow', 'sienna', 'mediumblue', 
-          'royalblue', 'lightcyan', 'green', 'mediumpurple', 'midnightblue', 'cornsilk', 'paleturquoise', 'bisque', 'slategray', 
-          'darkcyan', 'khaki', 'wheat', 'teal', 'darkorchid', 'deepskyblue', 'salmon', 'darkred', 'steelblue', 'palevioletred', 
-          'lightslategray', 'aliceblue', 'lightslategrey', 'lightgreen', 'orchid', 'gainsboro', 'mediumseagreen', 'lightgray', 
-          'mediumturquoise', 'darksage', 'lemonchiffon', 'cadetblue', 'lightyellow', 'lavenderblush', 'coral', 'purple', 'aqua', 
-          'lightsage', 'whitesmoke', 'mediumslateblue', 'darkorange', 'mediumaquamarine', 'darksalmon', 'beige', 'blueviolet', 
-          'azure', 'lightsteelblue', 'oldlace']
+COLORS = ['gold', 'hotpink', 'firebrick', 'indianred', 'sage', 'yellow', 'mistyrose', 'olive', 'pink', 'tomato', 'lightcoral', 'orangered', 
+          'navajowhite', 'lime', 'palegreen', 'greenyellow', 'burlywood', 'seashell', 'mediumspringgreen', 'fuchsia', 'papayawhip', 
+          'blanchedalmond', 'chartreuse', 'dimgray', 'black', 'peachpuff', 'springgreen', 'aquamarine', 'white', 'orange', 'lightsalmon', 
+          'brown', 'ivory', 'dodgerblue', 'peru', 'lawngreen', 'chocolate', 'crimson', 'forestgreen', 'slateblue', 'lightseagreen', 'cyan', 
+          'mintcream', 'silver', 'antiquewhite', 'mediumorchid', 'skyblue', 'gray', 'goldenrod', 'floralwhite', 'moccasin', 'saddlebrown', 
+          'grey', 'lightskyblue', 'lightpink', 'mediumvioletred', 'slategrey', 'red', 'deeppink', 'limegreen', 'palegoldenrod', 'plum', 
+          'turquoise', 'lightgrey', 'lightgoldenrodyellow', 'lavender', 'maroon', 'yellowgreen', 'sandybrown', 'thistle', 'violet', 'navy', 
+          'magenta', 'dimgrey', 'tan', 'rosybrown', 'olivedrab', 'blue', 'lightblue', 'ghostwhite', 'honeydew', 'cornflowerblue', 'linen', 
+          'powderblue', 'seagreen', 'snow', 'sienna', 'mediumblue', 'royalblue', 'lightcyan', 'green', 'mediumpurple', 'midnightblue', 
+          'cornsilk', 'paleturquoise', 'bisque', 'slategray', 'khaki', 'wheat', 'teal', 'deepskyblue', 'salmon', 'steelblue', 
+          'palevioletred', 'lightslategray', 'aliceblue', 'lightslategrey', 'lightgreen', 'orchid', 'gainsboro', 'mediumseagreen', 
+          'lightgray', 'mediumturquoise', 'lemonchiffon', 'cadetblue', 'lightyellow', 'lavenderblush', 'coral', 'purple', 'aqua', 
+          'lightsage', 'whitesmoke', 'mediumslateblue', 'mediumaquamarine', 'beige', 'blueviolet', 'azure', 'lightsteelblue', 'oldlace']
+
 
             
 class UDSEventsClient(threading.Thread):
@@ -89,8 +86,6 @@ class ClusterViz(Cluster):
         self.runIdx = 0
         self.initSize = len(self.clusterNodes)
         self.colors = COLORS
-        self.colors.pop('indigo', None)
-        self.colors.pop('darkgreen', None)
         self.reservedColor = self.colors[1]       
         self.colors.remove(self.reservedColor) 
         self.initialize_graph()
