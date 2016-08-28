@@ -61,6 +61,8 @@ AC_CONFIG_FILES([setup.py])
 AC_CONFIG_FILES([start.sh])
 AC_CONFIG_FILES([start.py])
 AC_CONFIG_FILES([configutils.py])
+AC_CONFIG_FILES([webviz.py:src/classifier/py/classifierviz.py])
+AC_CONFIG_FILES([cherrypy.conf:src/classifier/config/cherrypy.conf])
 AC_CONFIG_FILES([engine.conf])
 
 AC_OUTPUT
