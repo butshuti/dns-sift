@@ -10,7 +10,7 @@ TODO:Important targets: malformed packets, DNS tunnels, abnormal TTLs, abnormal 
 */
 int handle_inpacket(dnsPacketInfo* pkt, PACKET_SCORE packet_score)
 {
-	return packet_score > SCORE_OUTSTANDING ? NF_DROP : NF_ACCEPT;
+	return packet_score >= SCORE_OUTSTANDING ? NF_DROP : NF_ACCEPT;
 }
 
 /*
@@ -21,5 +21,5 @@ blacklisted addresses (IPs, domains)
 */
 int handle_outpacket(dnsPacketInfo* pkt, PACKET_SCORE packet_score)
 {
-	return packet_score > SCORE_OUTSTANDING ? NF_DROP : NF_ACCEPT;
+	return packet_score >= SCORE_OUTSTANDING ? NF_DROP : NF_ACCEPT;
 }
