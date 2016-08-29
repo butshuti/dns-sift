@@ -11,11 +11,11 @@ LDLIBS = -lnfnetlink -lnetfilter_queue -lpthread -lpcap -lpython2.7
 build : $(OBJECTS)
 	mkdir -p bin/@package_name@
 	cp -r src/classifier/* bin/@package_name@
-	cp -r src/gui/* bin/@package_name@
 	cp setup.py bin
 	cp start.py bin/@package_name@
 	cp webviz.py bin/@package_name@
 	cp configutils.py bin/@package_name@
+	cp interface.py bin/@package_name@
 	$(MAKE) -C src/classifier
 	#$(CC) $(OBJECTS) src/classifier/classifier_interface.o -o $(OBJECTNAME) $(LDLIBS) $(CFLAGS)
 	cp $(SOURCES) bin/@package_name@
@@ -23,16 +23,18 @@ build : $(OBJECTS)
 	cd bin && python setup.py build
 
 install : build
-	mkdir -p /var/run/@package_name@
-	install -DT engine.conf /etc/@package_name@conf/engine.conf
-	install -DT cherrypy.conf /etc/@package_name@conf/cherrypy.conf
+	mkdir -p /etc/@package_name@conf/model /var/run/@package_name@ /var/www/@package_name@/visjs /tmp/@package_name@
+	mkdir -p /tmp/dnssift --mode=666
+	cp engine.conf /etc/@package_name@conf/engine.conf
+	cp cherrypy.conf /etc/@package_name@conf/cherrypy.conf
+	cp -r bin/@package_name@/visjs /var/www/@package_name@
 	cd bin && python setup.py install
 	
 test :
 	python -m @package_name@.classifier
 	
 clean :
-	rm -rf $(EXEC_NAME) $(LIB_NAME) *.o *~ src/dns/*.o src/dns/*~ bin setup.py start.py configutils.py webviz.py engine.conf cherrypy.conf
+	rm -rf $(EXEC_NAME) $(LIB_NAME) *.o *~ src/dns/*.o src/dns/*~ bin setup.py start.py configutils.py interface.py webviz.py engine.conf cherrypy.conf
 	$(MAKE) -C src/classifier clean
 .PHONY: clean
 

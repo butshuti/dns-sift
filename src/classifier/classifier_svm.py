@@ -9,6 +9,7 @@ from sklearn import svm
 
 cfgParams = cfg.parseConf()
 UDS_FILE_NAME = cfgParams["uds_sock_file"]
+MODEL_DATA_DIR = cfgParams["model_data_dir"]
 DUMMY_TOKEN = "no_token"
 DUMMY_TOKEN_CONF = "{}=>{}".format(DUMMY_TOKEN, DUMMY_TOKEN)
 DUMMY_MSG_LEN = 64
@@ -87,7 +88,7 @@ def train(enableSubscribe=True):
     print("Started training.....")
     """Load training data set"""
     from dnssift.data.dns_tunneling import loader
-    ds = loader.DataSet()
+    ds = loader.DataSet(MODEL_DATA_DIR)
     """Generate model ---
     Train with 'normal DNS' samles only"""
     training_samples = [[reduceDim(x[0]), x[1]] for x in ds.training_samples]

@@ -24,7 +24,7 @@ AC_PROG_LN_S
 
 # Checks dependencies.
 AC_CHECK_LIB([netfilter_queue], [nfq_open],[], AC_MSG_FAILURE([libnetfilter_queue is required but not found on the system. Please install it first.], 1))
-AC_PYTHON_MODULE(tkinter)
+AC_PYTHON_MODULE(Tkinter)
 AC_PYTHON_MODULE(numpy)
 AC_PYTHON_MODULE(matplotlib)
 
@@ -62,6 +62,7 @@ AC_CONFIG_FILES([setup.py])
 AC_CONFIG_FILES([start.sh])
 AC_CONFIG_FILES([start.py])
 AC_CONFIG_FILES([configutils.py])
+AC_CONFIG_FILES([interface.py:src/gui/interface.py])
 AC_CONFIG_FILES([webviz.py:src/classifier/py/classifierviz.py])
 AC_CONFIG_FILES([cherrypy.conf:src/classifier/config/cherrypy.conf])
 AC_CONFIG_FILES([engine.conf])

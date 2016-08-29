@@ -25,7 +25,7 @@ def refitMinMax(x, y):
 
 def reduceDim(arr, scale=0.1, offset=0):
     inDim = len(arr)
-    if inDim <= 20: return np.array(arr)
+    if inDim <= 2: return np.array(arr)
     x = 0
     y = 0
     dimRange = range(inDim)
@@ -39,7 +39,10 @@ def reduceDim(arr, scale=0.1, offset=0):
 clf = svm.OneClassSVM(nu=0.01, kernel="rbf", gamma=0.0001)
 """Load training data set"""
 from dnssift.data.dns_tunneling import loader
-ds = loader.DataSet()
+import dnssift.configutils as cfg
+cfgParams = cfg.parseConf()
+MODEL_DATA_DIR = cfgParams["model_data_dir"]
+ds = loader.DataSet(MODEL_DATA_DIR)
 #extra_pos = ds.loadDs("/home/hazirex/dump/datapoints_pos.csv", "P")
 #extra_neg = ds.loadDs("/home/hazirex/dump/datapoints_neg.csv", "N")
 """Generate model"""
@@ -86,7 +89,7 @@ print("DNSSIFT pos_error: {}% -- ({} / {})".format(round(100.0*pos_pred_error/le
 print("DNSSIFT neg_error: {}% -- ({} / {})".format(round(100.0*neg_pred_error/len(neg_samples), 2), 
                                                  neg_pred_error, len(neg_samples)))
 print("DNSSIF training time: {} seconds".format(endTime-startTime))
-"""
+
 learntXMin, learntXMax = (learntXMin-50, learntXMax+50)
 learntYMin, learntYMax = (learntYMin-50, learntYMax+50)
 xx, yy = np.meshgrid(np.linspace(learntXMin, learntXMax, 500), np.linspace(learntYMin, learntYMax, 500))
@@ -114,4 +117,4 @@ plt.xlabel(
     % (round(100.0*svm_train_pred_error/len(pos_training_samples), 2), 
        round(100.0*svm_pos_pred_error/len(pos_samples), 2), 
        round(100.0*svm_neg_pred_error/len(neg_samples), 2)))
-plt.show()"""
+plt.show()

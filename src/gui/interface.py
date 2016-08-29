@@ -1,10 +1,15 @@
 from Tkinter import *
-import tkMessageBox, ttk
-import dnssift.configutils as cfg
-import os, time, threading, math
+import tkMessageBox, tkFileDialog, ttk
+from ttk import Progressbar, Separator, Treeview, Button, Style
+import dnssift.configutils as cfg, dnssift.data.dns_tunneling.loader as modelLoader
+import os, time, threading, math, shutil
 from subprocess import Popen, PIPE, call
+from os import listdir, remove
+from os.path import isfile, isdir, join, dirname, realpath, basename,expanduser
 
-CMD_LOG_FILE = "/tmp/dnssift_last_cmd_error.log"
+CMD_LOG_FILE = "/tmp/dnssift/dnssift-interface-last.log"
+configs = cfg.parseConf()
+
 
 class App:
   def __init__(self, window):
@@ -13,6 +18,7 @@ class App:
     self.reportServerAlive = False
     self.reportServerBut = None
     self.progressbarRunning = False
+    self.modelTree = None
     self.nsListStr = StringVar(self.window)
     self.filterStatusStr = StringVar(self.window)
     self.reportClientStatusStr = StringVar(self.window)
@@ -26,6 +32,7 @@ class App:
     self.home()
     Frame(self.window,width=600,height=10).pack(side=TOP)
     self.window.resizable(width=False, height=False)
+    Style().configure("TButton", padding=6, relief="raised", background="#999")
     
   def home(self):
     """
@@ -36,14 +43,21 @@ class App:
     Label(nsFrame, text="Configured nameservers:", height=2, anchor='w').grid(row=0, sticky="nsew")
     Label(nsFrame, textvariable=self.nsListStr, relief="sunken").grid(row=1, sticky="nsew")
     nsFrame.pack(side=TOP, fill=X, padx=20, pady=10, ipadx=20, ipady=5)
-    ttk.Separator(self.window, orient="horizontal").pack(side=TOP, padx=20, fill=X)
+    Separator(self.window, orient="horizontal").pack(side=TOP, padx=20, fill=X)
     #filter daemon status frame
     statusFrame = Frame(self.window)
     Label(statusFrame, text="DNS filter status:", height=2, anchor='w').grid(row=0, column=0)
     Label(statusFrame, textvariable=self.filterStatusStr).grid(row=0, column=1)
     Button(statusFrame, textvariable=self.filterControlButStr, command=self.changeFilterStatus).grid(row=1, column=0, sticky=W)
     statusFrame.pack(side=TOP, fill=X, padx=20, pady=10, ipadx=20, ipady=5)
-    ttk.Separator(self.window, orient="horizontal").pack(side=TOP, padx=20, fill=X)
+    Separator(self.window, orient="horizontal").pack(side=TOP, padx=20, fill=X)
+    #model files frame
+    modelFrame = Frame(self.window)
+    Label(modelFrame, text="Model tags: [{}]".format(configs["model_tags"]), height=2, anchor='w').grid(row=0, sticky="nsew")
+    Label(modelFrame, text="Model configuration", height=2).grid(row=1, sticky=W)
+    self.modelConfigFrame(modelFrame).grid(row=2, column=1, sticky=W)
+    modelFrame.pack(side=TOP, fill=X, padx=20, pady=10, ipadx=20, ipady=5)
+    Separator(self.window, orient="horizontal").pack(side=TOP, padx=20, fill=X)
     #web report client frame
     reportClientFrame = Frame(self.window)
     Label(reportClientFrame, text="Realtime report client status:", height=2, anchor='w').grid(row=0, column=0)
@@ -52,8 +66,102 @@ class App:
            state=self.getButtonStateForBool(self.mainDaemonAlive))
     self.reportServerBut.grid(row=1, column=0, sticky=W)
     reportClientFrame.pack(side=TOP, fill=X, padx=20, pady=10, ipadx=20, ipady=5)
-    ttk.Separator(self.window, orient="horizontal").pack(side=TOP, padx=20, fill=X)
+    Separator(self.window, orient="horizontal").pack(side=TOP, padx=20, fill=X)
     return
+    
+  def modelConfigFrame(self, parent):
+    """
+    Create and place next under parent a frame containing the current model configuration.
+    """
+    #Create container
+    frame = Frame(parent)
+    #Create treeView for model configuration
+    self.modelTree = Treeview(parent, columns=('size', 'modified'))  
+    self.populateModelTree()
+    self.modelTree.grid(row=1)
+    #Bind right-click (<Button-3>) on tree items for contextual menus
+    def treeContextualMenu(event):
+      itemId = self.modelTree.identify_row(event.y)
+      if itemId:
+        self.modelTree.selection_set(itemId)
+        item = self.modelTree.selection()
+        ctxMenu = Menu(self.window, tearoff=0)
+        ctxMenu.add_separator()
+        if item[0][:4] == "tag:":
+          tag = item[0][4:]
+          ctxMenu.add_command(label="Add samples (from a csv file)", command=lambda:self.addSampleFileToModelDir(tag))
+          ctxMenu.add_separator()
+          ctxMenu.add_command(label="Visualize feature map w.r.t loaded model", command=lambda:self.testOnLoadedModel(tag, True))        
+        elif item[0][:5] == "file:":
+          filename = item[0][5:]
+          ctxMenu.add_command(label="Test on loaded model", command=lambda:self.testOnLoadedModel(filename, False))
+          ctxMenu.add_separator()
+          ctxMenu.add_command(label="Delete", command=lambda:self.deleteModelFile(filename))  
+        ctxMenu.add_separator()
+        ctxMenu.tk_popup(event.x_root, event.y_root)
+    self.modelTree.bind("<Button-3>", treeContextualMenu)    
+    return frame
+  
+  def testOnLoadedModel(self, sampleFile, isDir):
+    tkMessageBox.showinfo("Sorry!", "Feature not yet implemented!")
+    return
+  
+  def populateModelTree(self):
+    if self.modelTree is None: return
+    #Extract model tags
+    tags = [s.strip() for s in configs["model_tags"].split(",")]    
+    self.modelTree.column('size', width=100, anchor='center')
+    self.modelTree.column('modified', width=200, anchor='center')
+    self.modelTree.heading('size', text='Length') 
+    self.modelTree.heading('modified', text='Modified')
+    treeHeight = 0
+    #Populate treeView with current configuration
+    self.modelTree.delete(*self.modelTree.get_children())
+    for i in range(len(tags)):
+      treeHeight += 1
+      dirName = join(configs["model_data_dir"], tags[i])
+      children = self.getDirContentDescr(dirName)
+      rowId = self.modelTree.insert('', i, "tag:{}".format(tags[i]), text=tags[i])
+      for child in children:
+        treeHeight += 1
+        self.modelTree.insert(rowId, "end", "file:{}/{}".format(tags[i], child['name']), 
+                    text=child['name'], values=(child['size'], child['modified']))
+    self.modelTree['height'] = treeHeight + 1    
+    return
+  
+  def addSampleFileToModelDir(self, tag):
+    modelDir = join(configs["model_data_dir"], tag)
+    file_opts = {'defaultextension':'.csv', 'filetypes':[('CSV files', '.csv'), ('all files', '.*')],
+                 'initialdir': expanduser("~"), 'title':'Select data file'}
+    filename = tkFileDialog.askopenfilename(**file_opts)
+    try:
+      modelLoader.add_file_to_model_dir(filename, modelDir)
+    except Exception as exc:
+      tkMessageBox.showerror("Error copying files", exc)
+      return
+    self.populateModelTree()
+    tkMessageBox.showinfo("Success", "Successfully copied data file {} to {}.".format(filename, modelDir))
+    return
+  
+  def deleteModelFile(self, filename):
+    if tkMessageBox.askyesno("Confirm deleting {}".format(filename), "Are you sure about deleting this file?"):
+      try:
+        remove(join(configs["model_data_dir"], filename))        
+        self.populateModelTree()
+      except Exception, exc:
+        tkMessageBox.showerror("Error deleting {}".format(filename), exc)
+    return
+    
+  def getDirContentDescr(self, dirName):
+    if not isdir(dirName): return []
+    files = [f for f in listdir(dirName) if (isfile(join(dirName, f)) and f.endswith('.csv'))]
+    ret = []
+    for f in files:
+      absPath = join(dirName, f)
+      with open(absPath) as txtFile:
+        ret.append({'name':f, 'size':sum(1 for line in txtFile), 'modified':time.ctime(os.path.getmtime(absPath))})
+        txtFile.close()
+    return ret
     
   def getButtonStateForBool(self, boolVar):
     if boolVar : return NORMAL
@@ -85,7 +193,6 @@ class App:
     Start or stop the main engine.
     Action to take depends on the current state: (running=>STOP_current, nont_running=>START_new).
     """
-    configs = cfg.parseConf()
     pidfile = configs['filter_daemon_pidfile']
     mainDaemonPID = self.readPIDFile(pidfile)    
     runInBackground = True
@@ -108,7 +215,6 @@ class App:
     Start or stop the interface to event reporting
     Action to take depends on the current state: (running=>STOP_current, nont_running=>START_new).
     """
-    configs = cfg.parseConf()
     pidfile = configs['reporter_daemon_pidfile']
     reportDaemonPID = self.readPIDFile(pidfile) 
     runInBackground = True
@@ -138,7 +244,7 @@ class App:
     self.window.after(250, callback)
   
   def startProgressbar(self):
-    progressbar = ttk.Progressbar(self.progressFrame, orient="horizontal", length=500, mode="indeterminate")
+    progressbar = Progressbar(self.progressFrame, orient="horizontal", length=500, mode="indeterminate")
     thread = threading.Thread(target=self.animateProgressBar, args=[progressbar])
     thread.daemon = True
     self.progressbarRunning = True
@@ -153,7 +259,7 @@ class App:
     if os.path.isfile(logfile):
       with open(logfile) as f:
         lines = f.readlines()
-        ret = "\n".join(lines)
+        ret = "\n".join([line for line in lines if "Error:" in line])
         f.close()
         return ret
     return ""

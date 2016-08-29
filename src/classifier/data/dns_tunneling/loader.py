@@ -1,4 +1,6 @@
-import numpy, csv
+import numpy, csv, shutil
+from os import listdir
+from os.path import isfile, isdir, join, dirname, realpath, basename
 
 def parse_file(fname):
     with open(fname, 'rb') as csvfile:
@@ -8,17 +10,28 @@ def parse_file(fname):
             ret.append([float(x) for x in row[:-1]])
     return ret
 
+def add_file_to_model_dir(filename, dirName):
+    if not isdir(dirName):
+        raise Exception("No such directory: {}.".format(dirName))
+    elif not isfile(filename):
+        raise Exception("No such filr: {}.".format(filename))
+    dstFileName = join(dirName, basename(filename))
+    if isfile(dstFileName):
+        raise Exception("File with same name already exists: {}".format(dstFileName))
+    shutil.copyfile(filename, dstFileName)
+    return
+
 class DataSet(object):
-    def __init__(self):
+    def __init__(self, modelDir=None):
         self.test_samples = None
         self.training_samples = None
-        self.load()
+        self.load(modelDir)
         
-    def load(self):
-        from os import listdir
-        from os.path import isfile, join, dirname, realpath, basename
-        pos_dataset_dir = join(dirname(realpath(__file__)), 'normal')
-        neg_dataset_dir = join(dirname(realpath(__file__)), 'anomalous')
+    def load(self, modelDir):
+        if modelDir is None:
+            modelDir = dirname(realpath(__file__))
+        pos_dataset_dir = join(modelDir, 'normal')
+        neg_dataset_dir = join(modelDir, 'anomalous')        
         posfiles = [join(pos_dataset_dir, f) for f in listdir(pos_dataset_dir) if (isfile(join(pos_dataset_dir, f)) and f.endswith('.csv'))]
         negfiles = [join(neg_dataset_dir, f) for f in listdir(neg_dataset_dir) if (isfile(join(neg_dataset_dir, f)) and f.endswith('.csv'))]
         training_samples = []

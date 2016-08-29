@@ -1,4 +1,5 @@
 filter_daemon_pidfile: /var/run/@package_name@_engine.pid
 reporter_daemon_pidfile: /var/run/@package_name@_viz.pid
 uds_sock_file: /var/run/@package_name@_reporter_channel.sock
-model_data_dir: /etc/@package_name@/model
+model_data_dir: /etc/@package_name@conf/model
+model_tags: normal,anomalous
