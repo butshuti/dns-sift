@@ -12,3 +12,6 @@ config.status
 config.log
 start.sh
 setup.py
+webviz.py
+configutils.py
+nohup.out
