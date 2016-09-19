@@ -1,6 +1,6 @@
 import numpy, csv, shutil
-from os import listdir
-from os.path import isfile, isdir, join, dirname, realpath, basename
+from os import listdir, makedirs
+from os.path import exists, isfile, isdir, join, dirname, realpath, basename
 
 def parse_file(fname):
     with open(fname, 'rb') as csvfile:
@@ -11,6 +11,8 @@ def parse_file(fname):
     return ret
 
 def add_file_to_model_dir(filename, dirName):
+    if not exists(dirName):
+        makedirs(dirName)
     if not isdir(dirName):
         raise Exception("No such directory: {}.".format(dirName))
     elif not isfile(filename):
