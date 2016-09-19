@@ -24,13 +24,13 @@ class App:
     self.reportClientStatusStr = StringVar(self.window)
     self.filterControlButStr = StringVar(self.window, "START")
     self.reportClientControlButStr = StringVar(self.window, "START")
-    self.progressFrame = Frame(self.window, width=600, height=20)
+    self.progressFrame = Frame(self.window, width=700, height=20)
     self.progressFrame.pack(side=TOP)
-    Frame(self.window,width=600,height=10).pack(side=TOP)
+    Frame(self.window,width=700,height=10).pack(side=TOP)
     self.parseNS("/etc/resolv.conf")
     self.getDaemonStatus()
     self.home()
-    Frame(self.window,width=600,height=10).pack(side=TOP)
+    Frame(self.window,width=700,height=10).pack(side=TOP)
     self.window.resizable(width=False, height=False)
     Style().configure("TButton", padding=6, relief="raised", background="#999")
     
@@ -55,7 +55,7 @@ class App:
     modelFrame = Frame(self.window)
     Label(modelFrame, text="Model tags: [{}]".format(configs["model_tags"]), height=2, anchor='w').grid(row=0, sticky="nsew")
     Label(modelFrame, text="Model configuration", height=2).grid(row=1, sticky=W)
-    self.modelConfigFrame(modelFrame).grid(row=2, column=1, sticky=W)
+    self.modelConfigFrame(modelFrame).grid(row=2, columnspan=2, sticky=W)
     modelFrame.pack(side=TOP, fill=X, padx=20, pady=10, ipadx=20, ipady=5)
     Separator(self.window, orient="horizontal").pack(side=TOP, padx=20, fill=X)
     #web report client frame
@@ -110,7 +110,7 @@ class App:
     if self.modelTree is None: return
     #Extract model tags
     tags = [s.strip() for s in configs["model_tags"].split(",")]    
-    self.modelTree.column('size', width=100, anchor='center')
+    self.modelTree.column('size', width=200, anchor='center')
     self.modelTree.column('modified', width=200, anchor='center')
     self.modelTree.heading('size', text='Length') 
     self.modelTree.heading('modified', text='Modified')
@@ -353,5 +353,6 @@ class App:
     return
 
 root = Tk()
+root.title("DNS-sift")
 app = App(root)
 root.mainloop()
