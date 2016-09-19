@@ -6,18 +6,32 @@
 
 #define BUFSIZE 1024
 
-
 /*
 Callback function to register for packet processing in the handler
 Returns VERDICT on packet (see netfilter)
 */
-static int callback(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg, struct nfq_data *nfa, void *data){
-	int id, rlen, verdict;
+static int verdict_callback(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg, struct nfq_data *nfa, void *data){
+	return process_packet(qh, nfmsg, nfa, data, issue_verdict);
+}
+
+/*
+Callback function to register for packet processing in the handler in permissive mode
+Returns 'ACCEPT' as the verdict on packet (see netfilter)
+*/
+int permissive_callback(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg, struct nfq_data *nfa, void *data){
+	return process_packet(qh, nfmsg, nfa, data, accept_packet);
+}
+
+
+int process_packet(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg, struct nfq_data *nfa, void *data, 
+	 int (*verdict_function)(dnsPacketInfo*, PACKET_SCORE, DIRECTION)){
+	int id, rlen, verdict, phys_in_dev;
 	struct nfqnl_msg_packet_hdr *ph;
 	unsigned char *payload;
 	rlen = nfq_get_payload(nfa, &payload);
 	ph = nfq_get_msg_packet_hdr(nfa);
-	int phys_in_dev;
+	id = ntohl(ph->packet_id);
+	phys_in_dev=nfq_get_indev(nfa);
 	if (ph){
 		id = ntohl(ph->packet_id);
 		/*
@@ -28,16 +42,16 @@ static int callback(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg, struct nfq_
 		Check if packet is incoming
 		*/
 		int packet_score;
-		if((phys_in_dev=nfq_get_indev(nfa))){
+		if(phys_in_dev){
 			packet_score = classify_packet(payload, rlen, &info, IN);
-			verdict = handle_inpacket(info, packet_score);
+			verdict = verdict_function(info, packet_score, IN);
 		}else{
 			packet_score = classify_packet(payload, rlen, &info, OUT);
-			verdict = handle_outpacket(info, packet_score);
+			verdict = verdict_function(info, packet_score, IN);
 		}
 		return nfq_set_verdict(qh, id, verdict, rlen, payload);
 	}else{
-		err(1, "callback()");
+		err(1, "verdict_callback()");
 		return -1;
 	}	
 }
@@ -66,7 +80,7 @@ int start_divert(struct nfq_handle **h, struct nfq_q_handle **qh, int port, void
 	if(cb){
 		*qh = nfq_create_queue(*h,  port, cb, NULL);
 	}else{
-		*qh = nfq_create_queue(*h,  port, &callback, NULL);
+		*qh = nfq_create_queue(*h,  port, &verdict_callback, NULL);
 	}
 	if (!(*qh)) {
 		err(1, "error during nfq_create_queue()\n");
@@ -106,4 +120,3 @@ void process_next_packet(struct nfq_handle *h, int fd){
 		return;
 	}
 }
-

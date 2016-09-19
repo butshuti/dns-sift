@@ -1,6 +1,6 @@
 #include <Python.h>
 #include "qh_daemon.h"
-
+#include "logger.h"
 
 static void thread_switch_wrapper(void (*f)(void)){
 	 	Py_BEGIN_ALLOW_THREADS
@@ -10,7 +10,36 @@ static void thread_switch_wrapper(void (*f)(void)){
 	 
 static PyObject* daemon_start(PyObject *self, PyObject *args)
 {
-    pkt_divert_start(&thread_switch_wrapper);
+    char *mode_arg, *debug_level_arg;
+    int mode = STRICT;
+    if(!PyArg_ParseTuple(args, "ss", &mode_arg, &debug_level_arg)){
+    	perror("PyArg_ParseTuple");
+    	fprintf(stderr, "Error parsing arguments.\n");
+    	fprintf(stderr, "Arguments format: (1:str<mode=[STRICT|PERMISSIVE|LEARNING]>, 2:str<debug=[VERBOSE|WARN|OFF]>).\n");
+    	return Py_BuildValue("d", -1);
+    }
+    if(strncmp(mode_arg, "STRICT", strlen("STRICT")) == 0){
+    	mode = STRICT;
+    }else if(strncmp(mode_arg, "PERMISSIVE", strlen("PERMISSIVE")) == 0){
+    	mode = PERMISSIVE;
+    }else if(strncmp(mode_arg, "LEARNING", strlen("LEARNING")) == 0){
+    	mode = LEARNING;
+    }else{
+    	fprintf(stderr, "Unrecognized argument for --mode:%s\n", mode_arg);
+    	return Py_BuildValue("d", -1);
+    }
+    if(strncmp(debug_level_arg, "VERBOSE", strlen("VERBOSE")) == 0){
+    	fprintf(stderr, "Setting debug level to %s/VERBOSE. Use -h for how to change debug levels\n", debug_level_arg);
+    	set_log_level(LOG_LEVELS_VERBOSE);
+    }else if(strncmp(debug_level_arg, "INFO", strlen("INFO")) == 0){
+    	set_log_level(LOG_LEVELS_INFO);
+    }else if(strncmp(debug_level_arg, "WARN", strlen("WARN")) == 0){
+    	set_log_level(LOG_LEVELS_WARNING);
+    }else if(strncmp(debug_level_arg, "OFF", strlen("OFF")) == 0){
+    	fprintf(stderr, "Setting debug level to %s/CRITICAL only. Use -h for how to change debug levels\n", debug_level_arg);
+    	set_log_level(LOG_LEVELS_CRITICAL);
+    }
+    pkt_divert_start(mode, &thread_switch_wrapper);
     return Py_BuildValue("d", 0);
 }
 

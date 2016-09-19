@@ -23,3 +23,14 @@ int handle_outpacket(dnsPacketInfo* pkt, PACKET_SCORE packet_score)
 {
 	return packet_score >= SCORE_OUTSTANDING ? NF_DROP : NF_ACCEPT;
 }
+
+int issue_verdict(dnsPacketInfo* pkt, PACKET_SCORE packet_score, DIRECTION drctn){
+	return drctn == IN ? handle_inpacket(pkt, packet_score) : handle_outpacket(pkt, packet_score);
+}
+
+/*
+Let packet through.
+*/
+int accept_packet(dnsPacketInfo* pkt, PACKET_SCORE packet_score, DIRECTION drctn){
+	return NF_ACCEPT;
+}

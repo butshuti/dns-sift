@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include "dns_features.h"
 
 #define DF_IN	0x1
 
@@ -29,6 +30,16 @@ int end_divert(struct nfq_handle**, struct nfq_q_handle**);
 /* Divert next packet in queue*/
 void process_next_packet(struct nfq_handle*, int);
 
+/*
+Callback function to register for packet processing in the handler in permissive mode
+Returns 'ACCEPT' as the verdict on packet (see netfilter)
+*/
+int permissive_callback(struct nfq_q_handle*, struct nfgenmsg*, struct nfq_data*, void*);
+
+
+int process_packet(struct nfq_q_handle*, struct nfgenmsg*, struct nfq_data*, void*, 
+	 int (*verdict_function)(dnsPacketInfo*, PACKET_SCORE, DIRECTION));
+	 
 int start_forwarding(struct in_addr from, int dport, int sport, int QNum);
 int stop_forwarding(struct in_addr from, int dport, int sport, int QNum);
 

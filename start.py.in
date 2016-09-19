@@ -1,9 +1,33 @@
 import @package_name@.daemon as dnssift_daemon
 import @package_name@.configutils as cfg
-import os
+import os, sys, getopt
 
+def print_help():
+	help_str = """
+	\n=========\nError parsing program arguments. \n
+	Options (short): -m[STRICT|PERMISSIVE|LEARNING] -d[VERBOSE|WARN|OFF] \n
+	(or long: --mode=[STRICT|PERMISSIVE|LEARNING] --debug=[VERBOSE|WARN|OFF] ) \n
+	\n=========\n
+	"""
+	return help_str
+	
 configs = cfg.parseConf()
 with open(configs["filter_daemon_pidfile"], "w") as pidfile:
 	pidfile.write(str(os.getpid()))
 	pidfile.close()
-dnssift_daemon.start_daemon()
+mode = "STRICT"
+debug_level = "VERBOSE"
+try:
+	opts, args = getopt.gnu_getopt(sys.argv[1:], "hm:d:", ["mode=", "debug="])
+	for opt, arg in opts:
+		if opt == '-h': 
+			sys.exit(print_help())
+		elif opt in ('-m', '--mode'):
+			mode = arg
+		elif opt in ('-d', '--debug'):
+			debug_level = arg
+		else:
+			sys.exit(print_help())
+except getopt.GetoptError:
+	sys.exit(print_help)
+dnssift_daemon.start_daemon(mode, debug_level)
