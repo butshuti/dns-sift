@@ -1,5 +1,5 @@
-#ifndef _GETDNS_NSS_SYSLG_
-#define _GETDNS_NSS_SYSLG_
+#ifndef _DNSSIFT_LOGGER_
+#define _DNSSIFT_LOGGER_
 
 /*Log levels*/
 #define LOG_LEVELS_CRITICAL 0
@@ -7,7 +7,7 @@
 #define LOG_LEVELS_INFO 2
 #define LOG_LEVELS_VERBOSE 3
 
-extern int log_level;
+extern int LOG_LEVEL;
 
 #include "../../config.h"
 
@@ -18,7 +18,7 @@ extern int log_level;
 	#include <syslog.h>
 	#define log_filter(level, args...)	\
 		do{	\
-			if(level <= log_level){\
+			if(level <= LOG_LEVEL){\
 				switch(level){\
 					case LOG_LEVELS_VERBOSE: syslog( LOG_DEBUG|LOG_CONS, args);break;\
 					case LOG_LEVELS_INFO: syslog( LOG_INFO, args);break;\
@@ -28,7 +28,7 @@ extern int log_level;
 			} \
 		}while(0)
 #else
-	#define log_filter(level, args...)
+	#define log_filter(level, args...) printf(args);
 #endif /*HAVE_SYSLOG_H*/
 
 #ifdef LOG_LEVEL /*Compile-time log-level configuration*/
@@ -64,4 +64,4 @@ extern int log_level;
 	#define log_debug(args...)	log_filter(LOG_LEVELS_VERBOSE, args)
 #endif /*LOG_LEVEL*/
 
-#endif /*GETDNS_NSS_SYSLOG*/
+#endif /*_DNSSIFT_LOGGER_*/

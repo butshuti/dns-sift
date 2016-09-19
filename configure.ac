@@ -30,7 +30,7 @@ AC_PYTHON_MODULE(matplotlib)
 
 # Checks for header files.
 CFLAGS="$CFLAGS -I/usr/include/python2.7"
-AC_CHECK_HEADERS([pcap/pcap.h netinet/ip.h stdint.h Python.h], [], AC_MSG_FAILURE([One or more required headers are missing. Please check the report above.]))
+AC_CHECK_HEADERS([pcap/pcap.h netinet/ip.h stdint.h syslog.h Python.h], [], AC_MSG_FAILURE([One or more required headers are missing. Please check the report above.]))
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_INT32_T

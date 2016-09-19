@@ -27,6 +27,8 @@
 #define MAX_CONNECTIONS_TABLE_SIZE 2
 #define MAX_DOMAINS_TABLE_SIZE 2
 
+#define LOG_LINE_SIZE 200
+
 #define  UNUSED_PARAM(x) ((void)(x))
 
 #define INVALID_DNS_QNAME_TAG ".dilavni"
@@ -40,7 +42,7 @@ void dump_ascii(const unsigned char *data_buffer, const unsigned int length);
 void print_pattern(const pattern*, char *tag);
 void extract_features(const dns_packet *pkt, const unsigned int length, pattern *pat);
 void print_pattern_point(const pattern *pat, FILE *fp, char *tag);
-void print_feature(const char *label, const feature ft);
+int print_feature(char *buf, int buflen, int cur_offs, const char *label, const feature ft);
 void adapt_feature(const feature *prev, feature *cur);
 
 extern void model_ttl_feature(uint32_t ttl, char *domain, feature *ft);
@@ -324,8 +326,20 @@ void dump_ascii(const unsigned char *data_buffer, const unsigned int length){
 	}
 }
 
-void print_feature(const char *label, const feature ft){
-	printf("%s:%d|%d|%d, ", label, ft.f_code, ft.f_range, ft.uniqueness);
+char *print_feature_start(int buflen){
+	char *buf = calloc(1, buflen);
+	return buf;
+}
+
+int print_feature(char *buf, int buflen, int cur_offs, const char *label, const feature ft){
+	int num = snprintf(buf+cur_offs, buflen-cur_offs, "%s:%d|%d|%d, ", label, ft.f_code, ft.f_range, ft.uniqueness);
+	return cur_offs+num;
+}
+void print_feature_end(char *buf, char *tag){
+	if(buf != NULL){
+		log_debug("<%s>   ---  %s\n", buf, tag);
+		free(buf);
+	}
 }
 
 /*void feature_to_point(const feature ft, uint64_t *arr, uint32_t idx){
@@ -356,15 +370,19 @@ void print_pattern_point(const pattern *pat, FILE *fp, char *tag){
 }
 
 void print_pattern(const pattern *pat, char *tag){
-	printf("<");
-	print_feature("SRC", pat->src_patt);
-	print_feature("DST", pat->dst_info);
-	print_feature("PACKET", pat->packet_patt);
-	print_feature("QUERY", pat->query_patt);
-	print_feature("REPLY", pat->reply_patt);
-	print_feature("TTL", pat->ttl_patt);
-	print_feature("QNAME", pat->qname_patt);
-	printf(">   ---  %s\n", tag);
+	int buflen = LOG_LINE_SIZE,cur_offs = 0;
+	char *buf = print_feature_start(buflen);
+	if(buf == NULL){
+		perror("print_feature_start");
+	}
+	cur_offs = print_feature(buf, buflen, cur_offs, "SRC", pat->src_patt);
+	cur_offs = print_feature(buf, buflen, cur_offs, "DST", pat->dst_info);
+	cur_offs = print_feature(buf, buflen, cur_offs, "PACKET", pat->packet_patt);
+	cur_offs = print_feature(buf, buflen, cur_offs, "QUERY", pat->query_patt);
+	cur_offs = print_feature(buf, buflen, cur_offs, "REPLY", pat->reply_patt);
+	cur_offs = print_feature(buf, buflen, cur_offs, "TTL", pat->ttl_patt);
+	cur_offs = print_feature(buf, buflen, cur_offs, "QNAME", pat->qname_patt);
+	print_feature_end(buf, tag);
 }
 
 void extract_features(const dns_packet *pkt, const unsigned int length, pattern *pat){

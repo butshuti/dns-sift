@@ -61,6 +61,9 @@
 /* Define to 1 if you have the `strtol' function. */
 #undef HAVE_STRTOL
 
+/* Define to 1 if you have the <syslog.h> header file. */
+#undef HAVE_SYSLOG_H
+
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #undef HAVE_SYS_STAT_H
 
