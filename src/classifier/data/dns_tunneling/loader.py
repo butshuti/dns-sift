@@ -56,6 +56,17 @@ class DataSet(object):
         from os.path import basename
         dat = parse_file(path)
         return numpy.array([(row, (basename(path), tag)) for row in dat])
+        
+    def loadDsDir(self, dirPath, tag):
+        from os.path import basename
+        if not isdir(dirPath):raise Exception("No such directory: {}.".format(dirPath))
+        files = [join(dirPath, f) for f in listdir(dirPath) if (isfile(join(dirPath, f)) and f.endswith('.csv'))]
+        ret = []
+        for f in files:
+        		dat = parse_file(f)
+        		dat = [(row, (basename(f), tag)) for row in dat]
+        		ret.extend(dat)
+        return numpy.array(ret)
     
 if __name__ == '__main__':
     DataSet()

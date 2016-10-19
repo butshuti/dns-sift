@@ -16,6 +16,7 @@ build : $(OBJECTS)
 	cp webviz.py bin/@package_name@
 	cp configutils.py bin/@package_name@
 	cp interface.py bin/@package_name@
+	cp modelviz.py bin/@package_name@
 	$(MAKE) -C src/classifier
 	#$(CC) $(OBJECTS) src/classifier/classifier_interface.o -o $(OBJECTNAME) $(LDLIBS) $(CFLAGS)
 	cp $(SOURCES) bin/@package_name@
@@ -34,7 +35,7 @@ test :
 	python -m @package_name@.classifier
 	
 clean :
-	rm -rf $(EXEC_NAME) $(LIB_NAME) *.o *~ src/dns/*.o src/dns/*~ bin setup.py start.py configutils.py interface.py webviz.py engine.conf cherrypy.conf
+	rm -rf $(EXEC_NAME) $(LIB_NAME) *.o *~ src/dns/*.o src/dns/*~ bin setup.py start.py configutils.py interface.py modelviz.py webviz.py engine.conf cherrypy.conf
 	$(MAKE) -C src/classifier clean
 .PHONY: clean
 
