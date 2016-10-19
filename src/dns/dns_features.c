@@ -24,8 +24,8 @@
 #define UDP_HDR_SIZE 8
 #define TCP_HDR_SIZE 20
 
-#define MAX_CONNECTIONS_TABLE_SIZE 2
-#define MAX_DOMAINS_TABLE_SIZE 2
+#define MAX_CONNECTIONS_TABLE_SIZE 10
+#define MAX_DOMAINS_TABLE_SIZE 10
 
 #define LOG_LINE_SIZE 200
 
@@ -36,6 +36,7 @@
 const feature NULL_FEATURE = {0, 0, 0};
 static struct hsearch_data *connections_table = NULL;
 static struct hsearch_data *high_level_domains_table = NULL;
+int conn_misses = 0;
 
 void dump(const unsigned char *data_buffer, const unsigned int length);
 void dump_ascii(const unsigned char *data_buffer, const unsigned int length);
@@ -231,11 +232,13 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
     	cur_t->transaction_count = 0;
     	cur_t->id_count = 1;
     	cur_t->src_port_count = 1;
+    	conn_misses++;
     }
     e.data = cur_t;
 	if(ep != NULL){
 		ep->data = e.data;
 	}else if(0 == hsearch_r(e, ENTER, &ep, connections_table)){
+		log_debug("classify_packet(): Failed updating connections table -- SIZE = %d / %d ?", conn_misses, MAX_CONNECTIONS_TABLE_SIZE);
 		perror("classify_packet(): Failed updating connections table");
 		raise(SIGTERM);
 	}    

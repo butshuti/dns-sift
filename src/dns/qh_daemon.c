@@ -18,14 +18,14 @@ struct nfq_q_handle *inQ;
 
 #define  QUEUE_PORT_IN 6000
 #define	 QUEUE_PORT_OUT 6000
-#define  TCP_IN "iptables %s INPUT -p tcp --source-port 53 -j NFQUEUE --queue-num %d ;"
-#define  UDP_IN "iptables %s INPUT -p udp --source-port 53 -j NFQUEUE --queue-num %d ;"
-#define  TCP_OUT "iptables %s OUTPUT -p tcp --destination-port 53 -j NFQUEUE --queue-num %d ;"
-#define  UDP_OUT "iptables %s OUTPUT -p udp --destination-port 53 -j NFQUEUE --queue-num %d ;"
+#define  TCP_IN "iptables %s INPUT -i %s -p tcp --source-port 53 -j NFQUEUE --queue-num %d ;"
+#define  UDP_IN "iptables %s INPUT -i %s -p udp --source-port 53 -j NFQUEUE --queue-num %d ;"
+#define  TCP_OUT "iptables %s OUTPUT -o %s -p tcp --destination-port 53 -j NFQUEUE --queue-num %d ;"
+#define  UDP_OUT "iptables %s OUTPUT -o %s -p udp --destination-port 53 -j NFQUEUE --queue-num %d ;"
 static int pending_signal = 0;
 int LOG_LEVEL = LOG_LEVELS_CRITICAL;
 
-void iptables_divert_tpl(char *cmd){
+void iptables_divert_tpl(char *cmd, char *iface){
 	if(!cmd){
 		fprintf(stderr, "Invalid iptables option.\n");
 		exit(-1);
@@ -34,18 +34,18 @@ void iptables_divert_tpl(char *cmd){
 		exit(-1);
 	}
 	char divIn[255], divOut[255];
-	int offs = snprintf(divIn, sizeof(divIn), TCP_IN, cmd, QUEUE_PORT_IN);
+	int offs = snprintf(divIn, sizeof(divIn), TCP_IN, cmd, iface, QUEUE_PORT_IN);
 	if(offs < strlen(TCP_IN)){
 		perror("iptables_divert_tpl() - snprintf");
 		exit(-1);
 	}
-	snprintf(divIn + offs, sizeof(divIn) - offs, UDP_IN, cmd, QUEUE_PORT_IN);
-	offs = snprintf(divOut, sizeof(divOut), TCP_OUT, cmd, QUEUE_PORT_OUT);
+	snprintf(divIn + offs, sizeof(divIn) - offs, UDP_IN, cmd, iface, QUEUE_PORT_IN);
+	offs = snprintf(divOut, sizeof(divOut), TCP_OUT, cmd, iface, QUEUE_PORT_OUT);
 	if(offs < strlen(TCP_IN)){
 		perror("iptables_divert_tpl() - snprintf");
 		exit(-1);
 	}
-	snprintf(divOut + offs, sizeof(divOut) - offs, UDP_OUT, cmd, QUEUE_PORT_OUT);
+	snprintf(divOut + offs, sizeof(divOut) - offs, UDP_OUT, cmd, iface, QUEUE_PORT_OUT);
 	printf("\n\nRefreshing iptables rules for DNS traffic...\n%s\n%s\n\n", divIn, divOut);
 	if(system(divIn) == -1 || system(divOut) == -1){
 		perror("iptables_divert_tpl() -- system()");
@@ -53,18 +53,18 @@ void iptables_divert_tpl(char *cmd){
 	}
 }
 
-void iptables_start_divert(void){
-	iptables_divert_tpl("-I");
+void iptables_start_divert(char *iface){
+	iptables_divert_tpl("-I", iface);
 }
 
-void iptables_end_divert(void){
-	iptables_divert_tpl("-D");
+void iptables_end_divert(char *iface){
+	iptables_divert_tpl("-D", iface);
 }
 
 void qh_daemon_signal(int signum){
 	fprintf(stderr, "Signalled <%d> to disable QUEUE?\n", signum);
 	pending_signal = signum;
-	iptables_end_divert();
+	iptables_end_divert("");
 	exit(pending_signal);
 }
 
@@ -80,7 +80,7 @@ void sigHandle(int signum){
 	qh_daemon_signal(signum);
 }
 
-void pkt_divert_start(ENFORCEMENT_MODE mode, void (*thread_switch_wrapper)(void (*)(void))){
+void pkt_divert_start(ENFORCEMENT_MODE mode, char *iface, void (*thread_switch_wrapper)(void (*)(void))){
 	signal(SIGSEGV, sigHandle);
  	signal(SIGINT, sigHandle);
  	signal(SIGTERM, sigHandle);
@@ -110,7 +110,7 @@ void pkt_divert_start(ENFORCEMENT_MODE mode, void (*thread_switch_wrapper)(void 
 		exit(-1);
 	}
 	openlog("DNSSIFT", LOG_PERROR, LOG_USER);
-	iptables_start_divert();
+	iptables_start_divert(iface);
 	while(!pending_signal){
 		if(thread_switch_wrapper){
 			void f(void){process_next_packet(nfqhIN, fd_in);}
@@ -119,7 +119,7 @@ void pkt_divert_start(ENFORCEMENT_MODE mode, void (*thread_switch_wrapper)(void 
 			process_next_packet(nfqhIN, fd_in);
 		}
 	}
-	iptables_end_divert();
+	iptables_end_divert(iface);
 	end_divert(&nfqhIN, &inQ);
 	exit(pending_signal);
 }

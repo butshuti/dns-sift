@@ -8,6 +8,9 @@ from os import listdir, remove
 from os.path import isfile, isdir, join, dirname, realpath, basename,expanduser
 
 CMD_LOG_FILE = "/tmp/dnssift/dnssift-interface-last.log"
+PLAY_MODES = ["STRICT", "PERMISSIVE", "LEARNING"]
+DEBUG_LEVELS = ["OFF", "WARN", "VERBOSE"]
+NET_INTERFACES = os.listdir('/sys/class/net/')
 configs = cfg.parseConf()
 
 
@@ -22,6 +25,9 @@ class App:
     self.nsListStr = StringVar(self.window)
     self.filterStatusStr = StringVar(self.window)
     self.reportClientStatusStr = StringVar(self.window)
+    self.playModeStr = StringVar(self.window, PLAY_MODES[0])
+    self.netInterfaceStr = StringVar(self.window, NET_INTERFACES[0])
+    self.debugLevelStr = StringVar(self.window, DEBUG_LEVELS[0])
     self.filterControlButStr = StringVar(self.window, "START")
     self.reportClientControlButStr = StringVar(self.window, "START")
     self.progressFrame = Frame(self.window, width=700, height=20)
@@ -44,6 +50,19 @@ class App:
     Label(nsFrame, textvariable=self.nsListStr, relief="sunken").grid(row=1, sticky="nsew")
     nsFrame.pack(side=TOP, fill=X, padx=20, pady=10, ipadx=20, ipady=5)
     Separator(self.window, orient="horizontal").pack(side=TOP, padx=20, fill=X)
+    #Runtime params frame
+    nsFrame = Frame(self.window, relief="groove", borderwidth=1)
+    Label(nsFrame, text="Runtime configurations:", height=2, anchor='w').grid(row=0, sticky="nsew")
+    Label(nsFrame, text="Play mode:").grid(row=1, column=0)
+    OptionMenu(nsFrame, self.playModeStr, *PLAY_MODES).grid(row=1, column=1)
+    Separator(nsFrame, orient="vertical").grid(row=1, column=2, sticky="ns", padx=20)
+    Label(nsFrame, text="Interface:").grid(row=1, column=3)
+    OptionMenu(nsFrame, self.netInterfaceStr, *NET_INTERFACES).grid(row=1, column=4)
+    Separator(nsFrame, orient="vertical").grid(row=1, column=5, sticky="ns", padx=20)
+    Label(nsFrame, text="Debug level:").grid(row=1, column=6)
+    OptionMenu(nsFrame, self.debugLevelStr, *DEBUG_LEVELS).grid(row=1, column=7)
+    nsFrame.pack(side=TOP, fill=X, padx=20, pady=10, ipadx=20, ipady=5)
+    Separator(self.window, orient="horizontal").pack(side=TOP, padx=20, fill=X)    
     #filter daemon status frame
     statusFrame = Frame(self.window)
     Label(statusFrame, text="DNS filter status:", height=2, anchor='w').grid(row=0, column=0)
@@ -67,6 +86,11 @@ class App:
     self.reportServerBut.grid(row=1, column=0, sticky=W)
     reportClientFrame.pack(side=TOP, fill=X, padx=20, pady=10, ipadx=20, ipady=5)
     Separator(self.window, orient="horizontal").pack(side=TOP, padx=20, fill=X)
+    #Refresh status frame
+    reloadFrame = Frame(self.window)
+    Button(reloadFrame, text="Reload", command=self.getDaemonStatus).grid(row=0, column=1, sticky=E)
+    reloadFrame.pack(side=TOP, fill=X, padx=20, pady=10, ipadx=20, ipady=5)
+    Separator(self.window, orient="horizontal").pack(side=TOP, padx=20, fill=X)        
     return
     
   def modelConfigFrame(self, parent):
@@ -91,10 +115,10 @@ class App:
           tag = item[0][4:]
           ctxMenu.add_command(label="Add samples (from a csv file)", command=lambda:self.addSampleFileToModelDir(tag))
           ctxMenu.add_separator()
-          ctxMenu.add_command(label="Visualize feature map w.r.t loaded model", command=lambda:self.testOnLoadedModel(tag, True))        
+          ctxMenu.add_command(label="Visualize feature map w.r.t loaded model", command=lambda:self.testOnLoadedModel(join(configs["model_data_dir"], tag), True))        
         elif item[0][:5] == "file:":
           filename = item[0][5:]
-          ctxMenu.add_command(label="Test on loaded model", command=lambda:self.testOnLoadedModel(filename, False))
+          ctxMenu.add_command(label="Test on loaded model", command=lambda:self.testOnLoadedModel(join(configs["model_data_dir"], filename), False))
           ctxMenu.add_separator()
           ctxMenu.add_command(label="Delete", command=lambda:self.deleteModelFile(filename))  
         ctxMenu.add_separator()
@@ -103,7 +127,10 @@ class App:
     return frame
   
   def testOnLoadedModel(self, sampleFile, isDir):
-    tkMessageBox.showinfo("Sorry!", "Feature not yet implemented!")
+    '''try:
+      modelviz.model_viz(sampleFile, isDir)
+    except Exception as exc:
+      tkMessageBox.showinfo("Sorry!", exc)'''
     return
   
   def populateModelTree(self):
@@ -204,7 +231,8 @@ class App:
       callback = lambda : not self.getDaemonStatus()[0]
     else:
       #dnssift.start
-      cmdStr = "python -m dnssift.start 2> {} 1> /dev/null".format(CMD_LOG_FILE)
+      cmdStr = "python -m dnssift.start --iface={} --mode={} --debug={} 2> {} 1> /dev/null".format(self.netInterfaceStr.get(), 
+      		self.playModeStr.get(), self.debugLevelStr.get(), CMD_LOG_FILE)
       okMsg = "Filter engine successfully started!"
       callback = lambda : self.getDaemonStatus()[0]
     self.shellCmd(cmdStr, okMsg, callback, runInBackground)
@@ -350,7 +378,7 @@ class App:
             servers.append(toks[1])
       f.close()
       self.nsListStr.set(", ".join(servers))
-    return
+    return    
 
 root = Tk()
 root.title("DNS-sift")

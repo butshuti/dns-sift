@@ -5,8 +5,8 @@ import os, sys, getopt
 def print_help():
 	help_str = """
 	\n=========\nError parsing program arguments. \n
-	Options (short): -m[STRICT|PERMISSIVE|LEARNING] -d[VERBOSE|WARN|OFF] \n
-	(or long: --mode=[STRICT|PERMISSIVE|LEARNING] --debug=[VERBOSE|WARN|OFF] ) \n
+	Options (short): -m[STRICT|PERMISSIVE|LEARNING] -iNET_INTERFACE -d[VERBOSE|WARN|OFF] \n
+	(or long: --mode=[STRICT|PERMISSIVE|LEARNING] --iface=NET_INTERFACE --debug=[VERBOSE|WARN|OFF] ) \n
 	\n=========\n
 	"""
 	return help_str
@@ -17,8 +17,9 @@ with open(configs["filter_daemon_pidfile"], "w") as pidfile:
 	pidfile.close()
 mode = "STRICT"
 debug_level = "VERBOSE"
+iface_arg = "lo"
 try:
-	opts, args = getopt.gnu_getopt(sys.argv[1:], "hm:d:", ["mode=", "debug="])
+	opts, args = getopt.gnu_getopt(sys.argv[1:], "hm:i:d:", ["mode=", "iface=", "debug="])
 	for opt, arg in opts:
 		if opt == '-h': 
 			sys.exit(print_help())
@@ -26,8 +27,10 @@ try:
 			mode = arg
 		elif opt in ('-d', '--debug'):
 			debug_level = arg
+		elif opt in ('-i', '--iface'):
+			iface_arg = arg
 		else:
 			sys.exit(print_help())
 except getopt.GetoptError:
 	sys.exit(print_help)
-dnssift_daemon.start_daemon(mode, debug_level)
+dnssift_daemon.start_daemon(mode, iface_arg, debug_level)
