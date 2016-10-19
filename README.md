@@ -46,6 +46,6 @@ The program is distributed as a C extension to the python interpreter, so it mus
 * Writing tests: future
 * Code review: future
 
-### Who do I talk to? ###
+### News ###
 
-* Research team: [Logix Labs](http://logix.rw/labs).
+* Updates: [Slides](https://docs.google.com/presentation/d/1I6yZJprwqvRo9guNOFgRieJhmAZ_exiIDj9pqdapbnw/edit?usp=sharing).
