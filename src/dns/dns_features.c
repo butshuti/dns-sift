@@ -224,7 +224,7 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
     			cur_t->patt.src_patt.f_range = 0;
     		}
     	}
-    	if((cur_t->transaction_count > 1) && ((cur_t->src_port_count > 5) || (cur_t->id_count > 10)) && t->patt.src_patt.f_code == SOURCE_OK){
+    	if((cur_t->transaction_count > 1) && ((cur_t->src_port_count > 5) || ((cur_t->id_count > 10) && t->patt.src_patt.f_code == SOURCE_OK))){
     		cur_t->patt.src_patt.f_code = SOURCE_PORT_BOUND;
     	}
     	cur_t->patt.packet_patt.f_range++;
