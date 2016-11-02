@@ -109,6 +109,8 @@ def train(enableSubscribe=True):
                                                      pos_pred_error, len(pos_samples)))
     print("DNSSIFT neg_error: {}% -- ({} / {})".format(round(100.0*neg_pred_error/len(neg_samples), 2), 
                                                      neg_pred_error, len(neg_samples)))
+    print("DNSSIFT tot_error: {}% -- ({} / {})".format(round(100.0*(neg_pred_error+pos_pred_error)/(len(neg_samples) + len(pos_samples)), 2), 
+                                                             neg_pred_error+pos_pred_error, len(neg_samples)+ len(pos_samples)))        
     print("DNSSIF training time: {} seconds".format(endTime-startTime))    
     print("Finished training.....")
     if enableSubscribe:
@@ -132,11 +134,11 @@ def randTest():
         print("(label: {}, classification: {}) -- source: {}".format(item[1][1], classifyWithLabel(item[0], item[1]), item[1][0]))
     return
 
-def runMain():
+def runMain(enableSubscribe=True):
     print("Running tests....")
-    train()
+    train(enableSubscribe)
     randTest() 
     print("Tests completed.")    
     return
 if __name__ == "__main__":
-    runMain()
+    runMain(False)

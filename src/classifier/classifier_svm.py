@@ -113,6 +113,8 @@ def train(enableSubscribe=True):
                                                      svm_pos_pred_error, len(pos_samples)))
     print("SVM neg_error: {}% -- ({} / {})".format(round(100.0*svm_neg_pred_error/len(neg_samples), 2), 
                                                      svm_neg_pred_error, len(neg_samples)))
+    print("SVM tot_error: {}% -- ({} / {})".format(round(100.0*(svm_neg_pred_error+svm_pos_pred_error)/(len(neg_samples) + len(pos_samples)), 2), 
+                                                         svm_neg_pred_error+svm_pos_pred_error, len(neg_samples)+ len(pos_samples)))    
     print("SVM training time: {} seconds".format(endTime-startTime))    
     print("Finished training.....")
     if enableSubscribe:
@@ -136,11 +138,11 @@ def randTest():
         print("(label: {}, classification: {}) -- source: {}".format(item[1][1], classifyWithLabel(item[0], item[1]), item[1][0]))
     return
 
-def runMain():
+def runMain(enableSubscribe=True):
     print("Running tests....")
-    train()
+    train(enableSubscribe)
     randTest() 
     print("Tests completed.")    
     return
 if __name__ == "__main__":
-    runMain()
+    runMain(False)
