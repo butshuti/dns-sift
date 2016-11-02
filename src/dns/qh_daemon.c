@@ -23,6 +23,7 @@ struct nfq_q_handle *inQ;
 #define  TCP_OUT "iptables %s OUTPUT -o %s -p tcp --destination-port 53 -j NFQUEUE --queue-num %d ;"
 #define  UDP_OUT "iptables %s OUTPUT -o %s -p udp --destination-port 53 -j NFQUEUE --queue-num %d ;"
 static int pending_signal = 0;
+static char *selected_iface = "";
 int LOG_LEVEL = LOG_LEVELS_CRITICAL;
 
 void iptables_divert_tpl(char *cmd, char *iface){
@@ -64,7 +65,7 @@ void iptables_end_divert(char *iface){
 void qh_daemon_signal(int signum){
 	fprintf(stderr, "Signalled <%d> to disable QUEUE?\n", signum);
 	pending_signal = signum;
-	iptables_end_divert("");
+	iptables_end_divert(selected_iface);
 	exit(pending_signal);
 }
 
@@ -111,6 +112,7 @@ void pkt_divert_start(ENFORCEMENT_MODE mode, char *iface, void (*thread_switch_w
 	}
 	openlog("DNSSIFT", LOG_PERROR, LOG_USER);
 	iptables_start_divert(iface);
+	selected_iface = strdup(iface);
 	while(!pending_signal){
 		if(thread_switch_wrapper){
 			void f(void){process_next_packet(nfqhIN, fd_in);}
