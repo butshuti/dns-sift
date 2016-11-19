@@ -83,7 +83,7 @@ char *parse_rdata(const uint8_t *packet, const uint32_t msg_start, const uint32_
            Extract normal label length
             */
             int i;
-            for(i=0; i<label_size, copy_offset < maxlen-2; i++)
+            for(i=0; (i<label_size) & (copy_offset < maxlen-2); i++)
             {
                 uint8_t ch = packet[(*pos)++];
                 if((ch > 31) && (ch < 127))

@@ -1,6 +1,6 @@
 #ifndef _DNSFW_FEATURES_H
 #define _DNSFW_FEATURES_H
-
+#include "flow_features.h"
 /*
 Protocol numbers for TCP and UDP.
 See http://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml
@@ -106,6 +106,7 @@ typedef struct {
 	feature reply_patt;
 	feature ttl_patt;
 	feature qname_patt;
+	flow_history flow_patt;
 } pattern;
 
 /*
@@ -132,6 +133,11 @@ typedef struct {
 	char *qname;
 	uint32_t remote_ip;
 } dnsTransactionLogWrapper;
-
+#ifdef __cplusplus
+    extern "C" {
+#endif
 PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **pkt_info, DIRECTION drtcn);
+#ifdef __cplusplus
+    }
+#endif
 #endif

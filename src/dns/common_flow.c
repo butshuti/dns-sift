@@ -18,6 +18,7 @@
 #include "dns_parse.h"
 #include "logger.h"
 #include "dns_features.h"
+#include "flow_features.h"
 
 
 #ifdef MODEL_SYSTEM_FLOW_THRESHOLDS
@@ -36,7 +37,9 @@
 #define MIN(X,Y)(X<Y?X:Y)
 
 extern int classify(uint64_t arr[], int size, const char *tag);
+extern int classify_flow(int arr[], int size, const char *tag);
 extern void pattern_to_point(const pattern *pat, uint64_t *arr);
+extern void flow_feature_to_point(const flow_history *fh, int* const arr, size_t arr_len);
 
 static struct hsearch_data *resolved_domains = NULL;
 
@@ -226,8 +229,11 @@ void model_domain_history(const char *qname, domain_history *history){
 
 PACKET_SCORE  classify_pattern(const pattern *pat, const char *tag){
 	uint64_t arr[7] = {0, 0, 0, 0, 0, 0, 0};
+	int flow_arr[26] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 	pattern_to_point(pat, arr);
-	int score = classify(arr, 7, tag);
+	flow_feature_to_point(&pat->flow_patt, flow_arr, 26);
+	//int score = classify(arr, 7, tag);
+	int score = classify_flow(flow_arr, 26, tag);
 	return score == 1 ? SCORE_NORMAL : SCORE_OUTSTANDING;
 }
 

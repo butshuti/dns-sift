@@ -10,12 +10,12 @@ static void thread_switch_wrapper(void (*f)(void)){
 	 
 static PyObject* daemon_start(PyObject *self, PyObject *args)
 {
-    char *mode_arg, *iface_arg, *debug_level_arg;
+    char *mode_arg, *iface_arg, *srvc_port_arg, *debug_level_arg;
     int mode = STRICT;
-    if(!PyArg_ParseTuple(args, "sss", &mode_arg, &iface_arg, &debug_level_arg)){
+    if(!PyArg_ParseTuple(args, "ssss", &mode_arg, &iface_arg, &srvc_port_arg, &debug_level_arg)){
     	perror("PyArg_ParseTuple");
     	fprintf(stderr, "Error parsing arguments.\n");
-    	fprintf(stderr, "Arguments format: (1:str<mode=[STRICT|PERMISSIVE|LEARNING]>, 2:str<debug=[VERBOSE|WARN|OFF]>).\n");
+    	fprintf(stderr, "Arguments format: (1:str<mode=[STRICT|PERMISSIVE|LEARNING]>, 2:str<iface=[lo|...]>, d:str<port=[53,...]>, 4:str<debug=[VERBOSE|WARN|OFF]>).\n");
     	return Py_BuildValue("d", -1);
     }
     if(strncmp(mode_arg, "STRICT", strlen("STRICT")) == 0){
@@ -39,7 +39,7 @@ static PyObject* daemon_start(PyObject *self, PyObject *args)
     	fprintf(stderr, "Setting debug level to %s/CRITICAL only. Use -h for how to change debug levels\n", debug_level_arg);
     	set_log_level(LOG_LEVELS_CRITICAL);
     }
-    pkt_divert_start(mode, iface_arg, &thread_switch_wrapper);
+    pkt_divert_start(mode, iface_arg, srvc_port_arg, &thread_switch_wrapper);
     return Py_BuildValue("d", 0);
 }
 

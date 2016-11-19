@@ -11,6 +11,8 @@ CMD_LOG_FILE = "/tmp/dnssift/dnssift-interface-last.log"
 PLAY_MODES = ["STRICT", "PERMISSIVE", "LEARNING"]
 DEBUG_LEVELS = ["OFF", "WARN", "VERBOSE"]
 NET_INTERFACES = os.listdir('/sys/class/net/')
+NET_PORTS = {'DNS':53}
+NET_PORTS.update(cfg.parseServices())
 configs = cfg.parseConf()
 
 
@@ -27,6 +29,7 @@ class App:
     self.reportClientStatusStr = StringVar(self.window)
     self.playModeStr = StringVar(self.window, PLAY_MODES[0])
     self.netInterfaceStr = StringVar(self.window, NET_INTERFACES[0])
+    self.servicePortsStr = StringVar(self.window, "DNS")
     self.debugLevelStr = StringVar(self.window, DEBUG_LEVELS[0])
     self.filterControlButStr = StringVar(self.window, "START")
     self.reportClientControlButStr = StringVar(self.window, "START")
@@ -59,8 +62,11 @@ class App:
     Label(nsFrame, text="Interface:").grid(row=1, column=3)
     OptionMenu(nsFrame, self.netInterfaceStr, *NET_INTERFACES).grid(row=1, column=4)
     Separator(nsFrame, orient="vertical").grid(row=1, column=5, sticky="ns", padx=20)
-    Label(nsFrame, text="Debug level:").grid(row=1, column=6)
-    OptionMenu(nsFrame, self.debugLevelStr, *DEBUG_LEVELS).grid(row=1, column=7)
+    Label(nsFrame, text="Service:").grid(row=1, column=6)
+    OptionMenu(nsFrame, self.servicePortsStr, *NET_PORTS.keys()).grid(row=1, column=7)
+    Separator(nsFrame, orient="vertical").grid(row=1, column=8, sticky="ns", padx=20)    
+    Label(nsFrame, text="Debug level:").grid(row=1, column=9)
+    OptionMenu(nsFrame, self.debugLevelStr, *DEBUG_LEVELS).grid(row=1, column=10)
     nsFrame.pack(side=TOP, fill=X, padx=20, pady=10, ipadx=20, ipady=5)
     Separator(self.window, orient="horizontal").pack(side=TOP, padx=20, fill=X)    
     #filter daemon status frame
@@ -231,8 +237,8 @@ class App:
       callback = lambda : not self.getDaemonStatus()[0]
     else:
       #dnssift.start
-      cmdStr = "python -m dnssift.start --iface={} --mode={} --debug={} 2> {} 1> /dev/null".format(self.netInterfaceStr.get(), 
-      		self.playModeStr.get(), self.debugLevelStr.get(), CMD_LOG_FILE)
+      cmdStr = "python -m dnssift.start --iface={} --port={} --mode={} --debug={} 2> {} 1> /dev/null".format(self.netInterfaceStr.get(), 
+                    NET_PORTS[self.servicePortsStr.get()], self.playModeStr.get(), self.debugLevelStr.get(), CMD_LOG_FILE)
       okMsg = "Filter engine successfully started!"
       callback = lambda : self.getDaemonStatus()[0]
     self.shellCmd(cmdStr, okMsg, callback, runInBackground)

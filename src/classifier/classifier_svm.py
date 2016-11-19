@@ -53,7 +53,7 @@ class ConnectionThread(Thread):
             
 def reduceDim(arr, scale=0.1, offset=0):
     inDim = len(arr)
-    if inDim <= 200: return np.array(arr)
+    if inDim <= 200: return np.array(arr[20:])
     x = 0
     y = 0
     dimRange = range(inDim)
@@ -128,7 +128,7 @@ def train(enableSubscribe=True):
 def randTest():
     import random
     from dnssift.data.dns_tunneling import loader
-    ds = loader.DataSet()   
+    ds = loader.DataSet(MODEL_DATA_DIR)   
     test_data = [[reduceDim(x[0]), x[1]] for x in ds.test_samples]
     positive_samples = [sample for sample in test_data if sample[1][1] == 'P']
     negative_samples = [sample for sample in test_data if sample[1][1] == 'N']

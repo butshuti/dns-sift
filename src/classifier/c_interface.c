@@ -52,7 +52,6 @@ int train(void)
     fprintf(stderr, "c_interface: Training ending?: <%s>.\n", (Py_IsInitialized() && success == 0) ? "TRUE" : "FALSE");
     return classifyFunction != NULL && success == 0;
 }
-
 int classify(int arr[], int size, const char *tag)
 {
 	if(classifyFunction == NULL){
@@ -76,7 +75,10 @@ int classify(int arr[], int size, const char *tag)
 	//Return result
 	return ret;
 }
-
+int classify_flow(int arr[], int size, const char *tag)
+{
+	return classify(arr, size, tag);
+}
 int Obslt_main(int argc, char **argv)
 {
 	int arr[] = {0, 1, 1, 81, 1, 1, 1}, arr2[] = {0, 3, 3, 3, 3, 3, 3}, 

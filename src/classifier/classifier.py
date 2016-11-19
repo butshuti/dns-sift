@@ -59,7 +59,7 @@ def reduceDim(arr, scale=0.1, offset=0):
     for i in dimRange[1::2]:
         y |= int(arr[i])<<i
     return [x,y]"""
-    return arr
+    return arr[20:]
 
 def classify(point, tag):
     global classifier
@@ -97,7 +97,7 @@ def train(enableSubscribe=True):
     neg_samples = [[reduceDim(o[0]), o[1]] for o in ds.test_samples if o[1][1] == 'N']
     pos_training_samples = [training_samples[i] for i in random.sample(range(len(training_samples)), len(training_samples))]    
     startTime = time.time()
-    k = 15#len(training_samples)/20
+    k = len(training_samples)/20
     classifier = Classifier(True)
     classifier.train(training_samples, k)
     endTime = time.time()
@@ -124,7 +124,7 @@ def train(enableSubscribe=True):
 def randTest():
     import random
     from dnssift.data.dns_tunneling import loader
-    ds = loader.DataSet()   
+    ds = loader.DataSet(MODEL_DATA_DIR)   
     test_data = [[reduceDim(x[0]), x[1]] for x in ds.test_samples]
     positive_samples = [sample for sample in test_data if sample[1][1] == 'P']
     negative_samples = [sample for sample in test_data if sample[1][1] == 'N']
