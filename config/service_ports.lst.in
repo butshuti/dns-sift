@@ -1,0 +1,11 @@
+DNS : 53
+HTTP : 80
+HTTPS : 443
+DHCP : 67, 68
+SSH : 22
+NTP : 123
+SIP : 5060, 5061
+FTP : 20, 21
+TELNET : 23
+SMTP : 25
+Traceroute : 33434

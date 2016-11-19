@@ -18,6 +18,7 @@ AC_MSG_RESULT(found)
 
 
 # Checks for programs.
+AC_PROG_CXX
 AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_LN_S
@@ -57,15 +58,16 @@ AC_SUBST(lib_name, $LIB_NAME)
 AC_SUBST(object_name, $OBJECT_NAME)
 AC_SUBST(package_name, $PACKAGE_NAME)
 
-AC_CONFIG_FILES([Makefile])
-AC_CONFIG_FILES([setup.py])
-AC_CONFIG_FILES([start.sh])
-AC_CONFIG_FILES([start.py])
-AC_CONFIG_FILES([configutils.py])
 AC_CONFIG_FILES([interface.py:src/gui/interface.py])
 AC_CONFIG_FILES([modelviz.py:src/gui/modelviz.py])
 AC_CONFIG_FILES([webviz.py:src/classifier/py/classifierviz.py])
 AC_CONFIG_FILES([cherrypy.conf:src/classifier/config/cherrypy.conf])
-AC_CONFIG_FILES([engine.conf])
+AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([setup.py:config/setup.py.in])
+AC_CONFIG_FILES([start.sh:config/start.sh.in])
+AC_CONFIG_FILES([start.py:config/start.py.in])
+AC_CONFIG_FILES([configutils.py:config/configutils.py.in])
+AC_CONFIG_FILES([engine.conf:config/engine.conf.in])
+AC_CONFIG_FILES([service_ports.lst:config/service_ports.lst.in])
 
 AC_OUTPUT

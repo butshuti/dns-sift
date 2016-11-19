@@ -2,13 +2,16 @@ LIBNAME = ./bin/@package_name@/@lib_name@
 OBJECTNAME = ./bin/@package_name@/@object_name@
 EXEC_NAME = ./bin/@package_name@/@exec_name@
 OBJECTS = $(patsubst %.c,%.o,$(wildcard *.c src/dns/*.c))
+CPPOBJECTS = $(patsubst %.cpp,%.o,$(wildcard *.cpp src/dns/*.cpp))
 SOURCES = $(patsubst %.c,%.c,$(wildcard *.c src/dns/*.c))
+CPPSOURCES = $(patsubst %.cpp,%.cpp,$(wildcard *.cpp src/dns/*.cpp))
 INCLUDES = $(patsubst %.h,%.h,$(wildcard *.h src/dns/*.h))
 CFLAGS = -gdwarf-2 -O3 -Wall -fPIC
+CXXFLAGS = -gdwarf-2 -O3 -Wall -fPIC
 LDFLAGS = -L/usr/local/lib -shared -rdynamic -Wl,-soname,$(LIBNAME) -Wl,--no-undefined 
 LDLIBS = -lnfnetlink -lnetfilter_queue -lpthread -lpcap -lpython2.7
 
-build : $(OBJECTS)
+build : $(OBJECTS) $(CPPOBJECTS)
 	mkdir -p bin/@package_name@
 	cp -r src/classifier/* bin/@package_name@
 	cp setup.py bin
@@ -18,8 +21,8 @@ build : $(OBJECTS)
 	cp interface.py bin/@package_name@
 	cp modelviz.py bin/@package_name@
 	$(MAKE) -C src/classifier
-	#$(CC) $(OBJECTS) src/classifier/classifier_interface.o -o $(OBJECTNAME) $(LDLIBS) $(CFLAGS)
 	cp $(SOURCES) bin/@package_name@
+	cp $(CPPSOURCES) bin/@package_name@
 	cp $(INCLUDES) bin/@package_name@
 	cd bin && python setup.py build
 
@@ -27,6 +30,7 @@ install : build
 	mkdir -p /etc/@package_name@conf/model /var/run/@package_name@ /var/www/@package_name@/visjs /tmp/@package_name@
 	mkdir -p /tmp/dnssift --mode=666
 	cp engine.conf /etc/@package_name@conf/engine.conf
+	cp service_ports.lst /etc/@package_name@conf/service_ports.lst
 	cp cherrypy.conf /etc/@package_name@conf/cherrypy.conf
 	cp -r bin/@package_name@/visjs /var/www/@package_name@
 	cd bin && python setup.py install
@@ -35,7 +39,7 @@ test :
 	python -m @package_name@.classifier
 	
 clean :
-	rm -rf $(EXEC_NAME) $(LIB_NAME) *.o *~ src/dns/*.o src/dns/*~ bin setup.py start.py configutils.py interface.py modelviz.py webviz.py engine.conf cherrypy.conf
+	rm -rf $(EXEC_NAME) $(LIB_NAME) *.o *~ src/dns/*.o src/dns/*~ bin setup.py start.py configutils.py interface.py modelviz.py webviz.py engine.conf cherrypy.conf service_ports.lst
 	$(MAKE) -C src/classifier clean
 .PHONY: clean
 

@@ -2,6 +2,7 @@ from distutils.core import setup, Extension
 import os, glob
 
 src_files = glob.glob("@package_name@/*.c")
+src_files.extend(glob.glob("@package_name@/*.cpp"))
 mdl = Extension('dnssift.daemon',
 	libraries = ['nfnetlink', 'netfilter_queue', 'pthread', 'pcap'],
 	library_dirs = ['/usr/local/lib'],

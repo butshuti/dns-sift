@@ -18,8 +18,9 @@ with open(configs["filter_daemon_pidfile"], "w") as pidfile:
 mode = "STRICT"
 debug_level = "VERBOSE"
 iface_arg = "lo"
+srvc_port = "53"
 try:
-	opts, args = getopt.gnu_getopt(sys.argv[1:], "hm:i:d:", ["mode=", "iface=", "debug="])
+	opts, args = getopt.gnu_getopt(sys.argv[1:], "hm:i:d:p:", ["mode=", "iface=", "debug=", "port="])
 	for opt, arg in opts:
 		if opt == '-h': 
 			sys.exit(print_help())
@@ -29,8 +30,10 @@ try:
 			debug_level = arg
 		elif opt in ('-i', '--iface'):
 			iface_arg = arg
+		elif opt in ('-p', '--port'):
+			srvc_port = arg
 		else:
 			sys.exit(print_help())
 except getopt.GetoptError:
 	sys.exit(print_help)
-dnssift_daemon.start_daemon(mode, iface_arg, debug_level)
+dnssift_daemon.start_daemon(mode, iface_arg, srvc_port, debug_level)
