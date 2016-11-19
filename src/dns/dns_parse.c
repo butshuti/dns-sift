@@ -83,7 +83,7 @@ char *parse_rdata(const uint8_t *packet, const uint32_t msg_start, const uint32_
            Extract normal label length
             */
             int i;
-            for(i=0; i<label_size; i++)
+            for(i=0; i<label_size, copy_offset < maxlen-2; i++)
             {
                 uint8_t ch = packet[(*pos)++];
                 if((ch > 31) && (ch < 127))
@@ -98,6 +98,10 @@ char *parse_rdata(const uint8_t *packet, const uint32_t msg_start, const uint32_
     {
         /*Root label only?*/
         name[copy_offset++] = '.';
+    }else if(copy_offset >= maxlen){
+    	/*Error parsing....*/
+    	*err_code = parse_malformed;
+    	return NULL;
     }
     name[copy_offset] = 0;
     if(initial_offset != 0)
