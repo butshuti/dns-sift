@@ -1,5 +1,6 @@
 #ifndef _DNSFW_FEATURES_H
 #define _DNSFW_FEATURES_H
+#include <stdio.h>
 #include "flow_features.h"
 /*
 Protocol numbers for TCP and UDP.
@@ -137,7 +138,14 @@ typedef struct {
     extern "C" {
 #endif
 PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **pkt_info, DIRECTION drtcn);
+void print_flow_feature_point(const pattern *pat, FILE *fp, char *tag);
+void pattern_to_point(const pattern *pat, uint64_t *arr);
+void print_pattern_point(const pattern *pat, FILE *fp, char *tag);
+void print_flow_feature_point(const pattern *pat, FILE *fp, char *tag);
+void print_pattern(const pattern *pat, char *tag);
+void dns_flow_inspect(uint8_t *payload, uint32_t payload_len, struct in_addr src_ip, 
+		struct in_addr dst_ip, DIRECTION drctn, pattern* const patt);
 #ifdef __cplusplus
     }
-#endif
-#endif
+#endif  //__CPLUSPLUS
+#endif  //_DNSFW_FEATURES_H
