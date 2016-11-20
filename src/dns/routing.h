@@ -1,5 +1,7 @@
 #include <stdint.h>
-#define _GNU_SOURCE
+#ifndef __cplusplus
+    #define _GNU_SOURCE
+#endif
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
