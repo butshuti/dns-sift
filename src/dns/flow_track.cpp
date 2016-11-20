@@ -147,7 +147,6 @@ void FlowTrack::recordQuery(int len)
 	updateFlowRate(1000.0*len/(1+time_since_last_query));
 	updateInterQueryTime(static_cast<float>(time_since_last_response));	
 	updateU2DLinkRatio((1.0+bytes_sent)/(1+bytes_recvd));
-	std::cout<<"cur_time: "<<cur_time<<" ; last_resp_tm: "<<last_response_tm<<" ; tm_since_last_resp: "<<time_since_last_response<<" --OR-- "<<getInterQueryTimeMA()->getAverage()<<std::endl;
 }
 
 void FlowTrack::recordResponse(int len)
