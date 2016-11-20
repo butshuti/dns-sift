@@ -9,7 +9,8 @@ typedef enum {LEARNING,	/*Used for training or learning current profiles.*/
 			STRICT		/*Enforce the specified policy over the monitored traffic.*/
 } ENFORCEMENT_MODE;
 
-void pkt_divert_start(ENFORCEMENT_MODE mode, char *iface, char *srvc_ports, void (*thread_switch_wrapper)(void (*)(void)));
+void pkt_divert_start(ENFORCEMENT_MODE mode, char *iface, char *srvc_ports, 
+		int pkt_copy_peek_size, void (*thread_switch_wrapper)(void (*)(void)));
 void qh_daemon_signal(int);
 void set_log_level(int level);
 

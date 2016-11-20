@@ -1,4 +1,5 @@
 #include <Python.h>
+#include <stdlib.h>
 #include "qh_daemon.h"
 #include "logger.h"
 
@@ -10,12 +11,12 @@ static void thread_switch_wrapper(void (*f)(void)){
 	 
 static PyObject* daemon_start(PyObject *self, PyObject *args)
 {
-    char *mode_arg, *iface_arg, *srvc_port_arg, *debug_level_arg;
-    int mode = STRICT;
-    if(!PyArg_ParseTuple(args, "ssss", &mode_arg, &iface_arg, &srvc_port_arg, &debug_level_arg)){
+    char *mode_arg, *iface_arg, *srvc_port_arg, *debug_level_arg, *pkt_size_max_copy_arg;
+    int mode = STRICT, pkt_size_max_copy = 60 /*Max ip header size*/;
+    if(!PyArg_ParseTuple(args, "sssss", &mode_arg, &iface_arg, &srvc_port_arg, &debug_level_arg, &pkt_size_max_copy_arg)){
     	perror("PyArg_ParseTuple");
     	fprintf(stderr, "Error parsing arguments.\n");
-    	fprintf(stderr, "Arguments format: (1:str<mode=[STRICT|PERMISSIVE|LEARNING]>, 2:str<iface=[lo|...]>, d:str<port=[53,...]>, 4:str<debug=[VERBOSE|WARN|OFF]>).\n");
+    	fprintf(stderr, "Arguments format: (1:str<mode=[STRICT|PERMISSIVE|LEARNING]>, 2:str<iface=[lo|...]>, d:str<port=[53,...]>, 4:str<debug=[VERBOSE|WARN|OFF]>), 5:int<copy=NUM_BYTES>.\n");
     	return Py_BuildValue("d", -1);
     }
     if(strncmp(mode_arg, "STRICT", strlen("STRICT")) == 0){
@@ -39,7 +40,8 @@ static PyObject* daemon_start(PyObject *self, PyObject *args)
     	fprintf(stderr, "Setting debug level to %s/CRITICAL only. Use -h for how to change debug levels\n", debug_level_arg);
     	set_log_level(LOG_LEVELS_CRITICAL);
     }
-    pkt_divert_start(mode, iface_arg, srvc_port_arg, &thread_switch_wrapper);
+    pkt_size_max_copy = atoi(pkt_size_max_copy_arg);
+    pkt_divert_start(mode, iface_arg, srvc_port_arg, pkt_size_max_copy, &thread_switch_wrapper);
     return Py_BuildValue("d", 0);
 }
 

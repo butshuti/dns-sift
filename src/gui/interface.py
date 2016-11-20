@@ -28,6 +28,7 @@ class App:
     self.filterStatusStr = StringVar(self.window)
     self.reportClientStatusStr = StringVar(self.window)
     self.playModeStr = StringVar(self.window, PLAY_MODES[0])
+    self.pktCopyMaxSize = StringVar(self.window, "60")
     self.netInterfaceStr = StringVar(self.window, NET_INTERFACES[0])
     self.servicePortsStr = StringVar(self.window, "DNS")
     self.debugLevelStr = StringVar(self.window, DEBUG_LEVELS[0])
@@ -68,6 +69,11 @@ class App:
     Label(nsFrame, text="Debug level:").grid(row=1, column=9)
     OptionMenu(nsFrame, self.debugLevelStr, *DEBUG_LEVELS).grid(row=1, column=10)
     nsFrame.pack(side=TOP, fill=X, padx=20, pady=10, ipadx=20, ipady=5)
+    Separator(nsFrame, orient="vertical").grid(row=2, column=2, sticky="ns", padx=20)    
+    Label(nsFrame, text="Max datagram bytes to copy:").grid(row=2, column=3)
+    Entry(nsFrame, width=5, text=self.pktCopyMaxSize.get(), textvariable=self.pktCopyMaxSize).grid(row=2, column=4)
+    Separator(nsFrame, orient="vertical").grid(row=2, column=5, sticky="ns", padx=20) 
+    nsFrame.pack(side=TOP, fill=X, padx=20, pady=10, ipadx=20, ipady=5)    
     Separator(self.window, orient="horizontal").pack(side=TOP, padx=20, fill=X)    
     #filter daemon status frame
     statusFrame = Frame(self.window)
@@ -237,8 +243,9 @@ class App:
       callback = lambda : not self.getDaemonStatus()[0]
     else:
       #dnssift.start
-      cmdStr = "python -m dnssift.start --iface={} --port={} --mode={} --debug={} 2> {} 1> /dev/null".format(self.netInterfaceStr.get(), 
-                    NET_PORTS[self.servicePortsStr.get()], self.playModeStr.get(), self.debugLevelStr.get(), CMD_LOG_FILE)
+      cmdStr = "python -m dnssift.start --iface={} --port={} --mode={} --debug={} --copy={}2> {} 1> /dev/null".format(self.netInterfaceStr.get(), 
+                    NET_PORTS[self.servicePortsStr.get()], self.playModeStr.get(), 
+                    self.debugLevelStr.get(), self.pktCopyMaxSize.get(), CMD_LOG_FILE)
       okMsg = "Filter engine successfully started!"
       callback = lambda : self.getDaemonStatus()[0]
     self.shellCmd(cmdStr, okMsg, callback, runInBackground)

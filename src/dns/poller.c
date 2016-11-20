@@ -49,7 +49,7 @@ int process_packet(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg, struct nfq_d
 			packet_score = classify_packet(payload, rlen, &info, OUT);
 			verdict = verdict_function(info, packet_score, IN);
 		}
-		return nfq_set_verdict(qh, id, verdict, rlen, payload);
+		return nfq_set_verdict(qh, id, verdict, 0, NULL);
 	}else{
 		err(1, "verdict_callback()");
 		return -1;
@@ -59,7 +59,7 @@ int process_packet(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg, struct nfq_d
 /*
 *Initialize the queue and handler; open a raw socket
 */
-int start_divert(struct nfq_handle **h, struct nfq_q_handle **qh, int port, void *cb){
+int start_divert(struct nfq_handle **h, struct nfq_q_handle **qh, int port, int pkt_copy_peek_size, void *cb){
 	int fd;
 	*h = nfq_open();
 	if (!(*h)) {
@@ -86,7 +86,10 @@ int start_divert(struct nfq_handle **h, struct nfq_q_handle **qh, int port, void
 		err(1, "error during nfq_create_queue()\n");
 	}
 	log_info("setting copy_packet mode\n");
-	if (nfq_set_mode(*qh, NFQNL_COPY_PACKET, 0xffff) < 0) {
+	if(pkt_copy_peek_size < DEFAULT_IP_PEEK_COPY_SIZE){
+		pkt_copy_peek_size = DEFAULT_IP_PEEK_COPY_SIZE;
+	}
+	if (nfq_set_mode(*qh, NFQNL_COPY_PACKET, pkt_copy_peek_size) < 0) {
 		err(1, "can't set packet_copy mode\n");
 	}
 	fd = nfq_fd(*h);

@@ -13,6 +13,8 @@
 #include "dns_features.h"
 
 #define DF_IN	0x1
+#define DEFAULT_IP_PEEK_COPY_SIZE 80 //Copy slightly more than the max IP header size to avoid pkt copy overhead.
+#define DEFAULT_DNS_PEEK_COPY_SIZE 520 //Copy slightly less than the default DNS-UDP size to avoid pkt copy overhead.
 
 typedef int (*divert_cb)(void *data, int len, int flags);
 
@@ -21,7 +23,7 @@ typedef int (*divert_cb)(void *data, int len, int flags);
 *
 *Return file descriptor for queue handler
 */
-int start_divert(struct nfq_handle**, struct nfq_q_handle**, int, void*);
+int start_divert(struct nfq_handle**, struct nfq_q_handle**, int, int, void*);
 int init_divert(struct nfq_handle**, struct nfq_q_handle**, int);
 
 /* Close and free resources */

@@ -104,7 +104,8 @@ void sigHandle(int signum){
 	qh_daemon_signal(signum);
 }
 
-void pkt_divert_start(ENFORCEMENT_MODE mode, char *iface, char *srvc_ports, void (*thread_switch_wrapper)(void (*)(void))){
+void pkt_divert_start(ENFORCEMENT_MODE mode, char *iface, char *srvc_ports, 
+		int pkt_copy_peek_size, void (*thread_switch_wrapper)(void (*)(void))){
 	signal(SIGSEGV, sigHandle);
  	signal(SIGINT, sigHandle);
  	signal(SIGTERM, sigHandle);
@@ -113,10 +114,10 @@ void pkt_divert_start(ENFORCEMENT_MODE mode, char *iface, char *srvc_ports, void
 	int fd_in;
 	if(mode == STRICT){
 		fprintf(stderr, "STARTING ENGINE IN STRICT MODE\n");
-		fd_in = start_divert(&nfqhIN, &inQ, 6000, NULL);
+		fd_in = start_divert(&nfqhIN, &inQ, 6000, pkt_copy_peek_size, NULL);
 	}else{
 		fprintf(stderr, "STARTING ENGINE IN %s MODE\n", mode==LEARNING ? "LEARNING" : "PERMISSIVE");
-		fd_in = start_divert(&nfqhIN, &inQ, 6000, &permissive_callback);
+		fd_in = start_divert(&nfqhIN, &inQ, 6000, pkt_copy_peek_size, &permissive_callback);
 	}
 	fprintf(stderr, "INTITIATING QUEUE: %d\n", fd_in);
 	if (getuid() == 0) {

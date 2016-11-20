@@ -19,8 +19,9 @@ mode = "STRICT"
 debug_level = "VERBOSE"
 iface_arg = "lo"
 srvc_port = "53"
+max_pkt_copy_bytes = "60"
 try:
-	opts, args = getopt.gnu_getopt(sys.argv[1:], "hm:i:d:p:", ["mode=", "iface=", "debug=", "port="])
+	opts, args = getopt.gnu_getopt(sys.argv[1:], "hm:i:d:p:c:", ["mode=", "iface=", "debug=", "port=", "copy="])
 	for opt, arg in opts:
 		if opt == '-h': 
 			sys.exit(print_help())
@@ -32,8 +33,11 @@ try:
 			iface_arg = arg
 		elif opt in ('-p', '--port'):
 			srvc_port = arg
+		elif opt in ('-c', '--copy'):
+			max_pkt_copy_bytes = arg
 		else:
 			sys.exit(print_help())
 except getopt.GetoptError:
-	sys.exit(print_help)
-dnssift_daemon.start_daemon(mode, iface_arg, srvc_port, debug_level)
+	sys.exit(print_help())
+dnssift_daemon.start_daemon(mode, iface_arg, srvc_port, debug_level, max_pkt_copy_bytes)
+
