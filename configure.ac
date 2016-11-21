@@ -20,7 +20,7 @@ AC_MSG_RESULT(found)
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_CC
-AC_PROG_INSTALL
+#AC_PROG_INSTALL
 AC_PROG_LN_S
 
 # Checks dependencies.
