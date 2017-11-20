@@ -125,7 +125,9 @@ PACKET_SCORE classify_packet(const uint8_t *data, size_t rlen, dnsPacketInfo **p
     if(!fp){
     	fp = fopen("/tmp/dnssift/datapoints.csv", "a+");
     }
-	PACKET_SCORE score = classify_pattern(&pkt_descr, "NO_TAG");	
+	char tag[255];
+	snprintf(tag, sizeof(tag), "%u;%s", drctn == OUT ? dst_ip.s_addr : src_ip.s_addr, INVALID_DNS_QNAME_TAG);
+	PACKET_SCORE score = classify_pattern(&pkt_descr, tag);	
 	char classif_log[255];
 	snprintf(classif_log, sizeof(classif_log), "SCORE: %d", score); 
 	print_flow_feature_point(&pkt_descr, fp, classif_log);

@@ -7,8 +7,9 @@ import numpy as np
 cfgParams = cfg.parseConf()
 MODEL_DATA_DIR = cfgParams["model_data_dir"]
 
-POLAR = True
+POLAR = False
 globalMeans = None
+globalMaxes = None
 
 def feature_cart_map(num, idx, dim, polar=False):
     section_W = math.radians(360.0)/dim
@@ -31,7 +32,8 @@ def feature_vec_cart_map(arr, polar=False):
     points = []
     for idx in range(dim):
         points.append(feature_cart_map(arr[idx], idx, dim, polar))
-    return points
+    if globalMaxes is None: return points
+    return np.maximum(np.array(points), 5*(points/(0.01+globalMaxes)))
 
 def reduceDim(points, polar=False):
     global globalMeans
@@ -46,10 +48,16 @@ def reduceDim(points, polar=False):
     return (math.sqrt(ret[0]), 100+math.sqrt(ret[1]))
       
 def InitializeGlobalMeans(dataSet):
-    global globalMeans
+    global globalMeans, globalMaxes
     globalMeans = np.average(dataSet, axis=0)
+    globalMaxes = np.absolute(np.amax(dataSet, axis=0))
     return
 
+def isValid(x):
+	global globalMeans
+	if globalMeans is None: return True
+	return np.array(x).shape[0] == globalMeans.shape[0]
+	
 def model_viz(path, isModelDir=False):
     """Load training data set"""
     from dnssift.data.dns_tunneling import loader
@@ -57,10 +65,10 @@ def model_viz(path, isModelDir=False):
     if len(ds.training_samples) == 0:
         raise("Training dataset empty.\n")
     training_samples_view = [feature_vec_cart_map(x[0], POLAR) for x in ds.training_samples]
-    test_samples_view = [feature_vec_cart_map(x[0], POLAR) for x in ds.test_samples]
+    test_samples_view = [feature_vec_cart_map(x[0], POLAR) for x in ds.test_samples if isValid(x[0])]
     InitializeGlobalMeans(training_samples_view)
-    training_samples = [[reduceDim(feature_vec_cart_map(x[0], POLAR)), x[1]] for x in ds.training_samples]
-    test_samples = [[reduceDim(feature_vec_cart_map(x[0], POLAR)), x[1]] for x in ds.test_samples]
+    training_samples_view = [feature_vec_cart_map(x[0], POLAR) for x in ds.training_samples if isValid(x[0])]
+    test_samples_view = [feature_vec_cart_map(x[0], POLAR) for x in ds.test_samples if isValid(x[0])]
     xs = []
     ys = []
     test_xs = []
@@ -70,13 +78,7 @@ def model_viz(path, isModelDir=False):
         ys.extend([p[1] for p in point])
     for point in test_samples_view:
         test_xs.extend([p[0] for p in point])
-        test_ys.extend([p[1] for p in point])    
-    '''for point in training_samples[:0]:
-        xs.append(point[0][0])
-        ys.append(point[0][1])
-    for point in test_samples:
-        test_xs.append(point[0][0])
-        test_ys.append(point[0][1])  '''  
+        test_ys.extend([p[1] for p in point])      
     plt.figure(2)
     plt.subplot(111, polar=POLAR)
     plt.scatter(xs, ys, s=600, zorder=11, c='g', edgecolors='g') 
@@ -92,12 +94,13 @@ def model_viz(path, isModelDir=False):
     viz_data = [feature_vec_cart_map(x[0], POLAR) for x in viz_data]
     viz_data_xs = []
     viz_data_ys = []
-    for point in viz_data[:1]:
+    for point in viz_data[:]:
         viz_data_xs.extend([p[0] for p in point])
         viz_data_ys.extend([p[1] for p in point])    
     plt.scatter(viz_data_xs, viz_data_ys, zorder=31, s=500, c='b', edgecolors='b', marker='*')
     plt.plot(viz_data_xs, viz_data_ys, zorder=30, c='b', linestyle='dotted')
+    plt.show()
     return
 
 if __name__ == '__main__':
-    model_viz("/home/hazirex/dump/dig.csv")
+    model_viz("/tmp/dnssift/datapoints.csv")

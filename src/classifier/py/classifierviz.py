@@ -73,13 +73,13 @@ class UDSEventsClient(threading.Thread):
             if len(toks) < 4:
                 continue
             tags = toks[1].split(";")
-            if len(tags[1]) < 2: continue
+            if len(tags) < 2: continue
             qname = tags[1][::-1]
             score = toks[2]
             ip = socket.inet_ntoa(struct.pack("!I", eval(tags[0])))
             self.evtMap.update(eval(toks[0]), "{}@{}".format(qname, ip), score)
             
-class ClusterViz(Cluster):
+class ClusterViz(HCluster):
     def __init__(self, **kwargs):
         super(ClusterViz, self).__init__(**kwargs)
         self.graph = {}
@@ -150,12 +150,12 @@ class EventMap(object):
         ds = loader.DataSet()
         """Generate model"""
         training_samples = ds.training_samples
-        self.profile = ClusterViz(observations=training_samples, size=5, threshold=1, adaptive=True)
+        self.profile = ClusterViz(observations=training_samples, size=5, threshold=0.01, adaptive=False)
         self.observations = set()
         self.logFile = open("{}/dnssift.log".format(PROFILE_VIZ_DUMP), "w+")
 
     def update(self, point, tag, label):
-        self.profile.cluster(numpy.array([[point]]), (tag, label))
+        self.profile.cluster(numpy.array([[point, tag]]), (tag, label))
         self.observations.add(str([point,tag]))
         try:
             self.logFile.write("{},({}),{}\n".format(point, tag, label))

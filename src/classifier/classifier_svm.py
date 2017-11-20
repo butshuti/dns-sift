@@ -52,8 +52,8 @@ class ConnectionThread(Thread):
     
             
 def reduceDim(arr, scale=0.1, offset=0):
-    inDim = len(arr)
-    if inDim <= 200: return np.array(arr[20:])
+    """inDim = len(arr)
+    if inDim <= 2: return np.array(arr)
     x = 0
     y = 0
     dimRange = range(inDim)
@@ -61,13 +61,15 @@ def reduceDim(arr, scale=0.1, offset=0):
         x |= int(arr[i])<<i
     for i in dimRange[1::2]:
         y |= int(arr[i])<<i
-    return np.array([x,y])
+    return [x,y]"""
+    return arr[-7:]
 
 def classify(point, tag):
     global classifier
     if classifier == None:
         raise Exception("Classifier not initialized.")
-    score = classifier.predict([reduceDim(point)])[0]
+    point = reduceDim(point)
+    score = classifier.predict([point])[0]
     if score < 0: score = 0
     if udsClientConnection != None:
         try:
@@ -96,7 +98,7 @@ def train(enableSubscribe=True):
     neg_samples = [[reduceDim(o[0]), o[1]] for o in ds.test_samples if o[1][1] == 'N']
     pos_training_samples = training_samples[:]#[training_samples[i] for i in random.sample(range(len(training_samples)), len(training_samples))]    
     startTime = time.time()
-    classifier = svm.OneClassSVM(nu=0.001, kernel="rbf", gamma=0.0001)
+    classifier = svm.OneClassSVM(nu=0.01, kernel="rbf", gamma=0.00001)
     svm_train_sample = np.array([o[0] for o in pos_training_samples])
     svm_pos_test_sample = np.array([o[0] for o in pos_samples])
     svm_neg_test_sample = np.array([o[0] for o in neg_samples])

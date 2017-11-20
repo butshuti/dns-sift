@@ -59,13 +59,14 @@ def reduceDim(arr, scale=0.1, offset=0):
     for i in dimRange[1::2]:
         y |= int(arr[i])<<i
     return [x,y]"""
-    return arr[20:]
+    return arr[-7:]
 
 def classify(point, tag):
     global classifier
     if classifier == None:
         raise Exception("Classifier not initialized.")
-    score = classifier.classify(reduceDim(point))
+    point = reduceDim(point)
+    score = classifier.classify(point)
     if udsClientConnection != None:
         try:
             msg = "{}#{}#{}#".format(point, tag, score)
@@ -97,7 +98,7 @@ def train(enableSubscribe=True):
     neg_samples = [[reduceDim(o[0]), o[1]] for o in ds.test_samples if o[1][1] == 'N']
     pos_training_samples = [training_samples[i] for i in random.sample(range(len(training_samples)), len(training_samples))]    
     startTime = time.time()
-    k = len(training_samples)/20
+    k = 30#len(training_samples)/10
     classifier = Classifier(True)
     classifier.train(training_samples, k)
     endTime = time.time()

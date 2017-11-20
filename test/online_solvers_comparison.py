@@ -6,12 +6,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import SGDClassifier, Perceptron
 from sklearn.linear_model import PassiveAggressiveClassifier
 from sklearn.linear_model import LogisticRegression
-
 import dnssift.configutils as cfg
 from dnssift.data.dns_tunneling import loader
 
 def reduceDim(arr):
-    return arr[20:]
+    return arr[:]
 
 cfgParams = cfg.parseConf()
 MODEL_DATA_DIR = cfgParams["model_data_dir"]
@@ -36,6 +35,7 @@ classifiers = [
 ]
 
 xx = 1. - np.array(heldout)
+
 
 for name, clf in classifiers:
     print("training %s" % name)

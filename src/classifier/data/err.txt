@@ -1,0 +1,24 @@
+Exception in thread Thread-3:
+Traceback (most recent call last):
+  File "/usr/lib/python2.7/threading.py", line 801, in __bootstrap_inner
+    self.run()
+  File "main.py", line 35, in run
+    handler.pollEvents()
+  File "/home/butshuti/research/dns-sift/src/classifier/py/fsevents.py", line 143, in pollEvents
+    else:self.start()
+  File "/home/butshuti/research/dns-sift/src/classifier/py/fsevents.py", line 135, in start
+    self.notifier.loop()
+  File "/usr/lib/python2.7/dist-packages/pyinotify.py", line 1390, in loop
+    self.process_events()
+  File "/usr/lib/python2.7/dist-packages/pyinotify.py", line 1288, in process_events
+    self._sys_proc_fun.cleanup()  # remove olds MOVED_* events records
+AttributeError: 'NoneType' object has no attribute 'cleanup'
+
+Traceback (most recent call last):
+  File "main.py", line 89, in <module>
+    t2.join()
+  File "/usr/lib/python2.7/threading.py", line 940, in join
+    self.__block.wait()
+  File "/usr/lib/python2.7/threading.py", line 340, in wait
+    waiter.acquire()
+KeyboardInterrupt

@@ -14,7 +14,7 @@ def reduceDim(arr):
     return arr
 
 def sliceArr(arr, start, siz):
-    return arr[20:]
+    return arr[:]
 
 cfgParams = cfg.parseConf()
 MODEL_DATA_DIR = cfgParams["model_data_dir"]

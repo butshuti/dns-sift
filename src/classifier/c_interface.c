@@ -25,7 +25,7 @@ int train(void)
     extern char *__progname;
     char* argv[] = {__progname};
     PySys_SetArgvEx(1, argv, 0);*/
-    PyObject* moduleString = PyString_FromString((char*)"dnssift.classifier");
+    PyObject* moduleString = PyString_FromString((char*)"dnssift.classifier_svm");
     PyObject* classifier_module = PyImport_Import(moduleString);
     PyObject* trainFunction = PyObject_GetAttrString(classifier_module, (char*)"train");
     if(trainFunction == NULL)

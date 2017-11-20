@@ -70,7 +70,7 @@ if __name__ == '__main__':
     stopEvent = threading.Event()
     def hh(f):
         f.add_path("/etc")
-        f.add_path("/home")
+        #f.add_path("/home")
         f.add_path("/bin")
         f.add_path("/root")
     threading.Thread(target=hh, args=[fm]).start()    

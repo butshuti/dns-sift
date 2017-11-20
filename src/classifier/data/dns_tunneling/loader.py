@@ -38,14 +38,16 @@ class DataSet(object):
         negfiles = [join(neg_dataset_dir, f) for f in listdir(neg_dataset_dir) if (isfile(join(neg_dataset_dir, f)) and f.endswith('.csv'))]
         training_samples = []
         test_samples = []
+        feat_len = -1
         for f in posfiles:
             dat = parse_file(f)
-            dat = [(row, (basename(f), 'P')) for row in dat]
+            feat_len = max([len(row) for row in dat])
+            dat = [(row, (basename(f), 'P')) for row in dat if len(row) == feat_len]
             training_samples.extend(dat)
             test_samples.extend(dat)
         for f in negfiles:
             dat = parse_file(f)
-            dat = [(row, (basename(f), 'N')) for row in dat]            
+            dat = [(row, (basename(f), 'N')) for row in dat if len(row) == feat_len]            
             test_samples.extend(dat)  
         training_samples = training_samples[0::10]
         observations = test_samples[:]
