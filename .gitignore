@@ -4,6 +4,7 @@
 *.pyc
 autom4te*
 src/build
+src/classifier/data/*.*
 *.csv
 Makefile
 configure
