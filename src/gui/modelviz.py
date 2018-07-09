@@ -11,62 +11,68 @@ POLAR = False
 globalMeans = None
 globalMaxes = None
 
+
 def feature_cart_map(num, idx, dim, polar=False):
-    section_W = math.radians(360.0)/dim
-    angle = section_W*idx
+    section__w = math.radians(360.0)/dim
+    angle = section__w*idx
     num = int(num)
     f_uniqueness = num & 0x07
     f_range = num >> 3
     f_code = num >> 5
     radius = (1+f_range) * (1+f_code) * 10
-    angle += (f_code+1)*(section_W/4.0)
-    angle -= (f_uniqueness+1)*(section_W/10.0)
+    angle += (f_code+1)*(section__w/4.0)
+    angle -= (f_uniqueness+1)*(section__w/10.0)
     if not polar:
         x = radius * math.cos(angle)
         y = radius * math.sin(angle)        
-        return (x, y)
-    return (angle, radius)
+        return x, y
+    return angle, radius
+
 
 def feature_vec_cart_map(arr, polar=False):
     dim = len(arr)
     points = []
     for idx in range(dim):
         points.append(feature_cart_map(arr[idx], idx, dim, polar))
-    if globalMaxes is None: return points
+    if globalMaxes is None:
+        return points
     return np.maximum(np.array(points), 5*(points/(0.01+globalMaxes)))
 
-def reduceDim(points, polar=False):
+
+def reduce_dim(points, polar=False):
     global globalMeans
     if globalMeans is None:
-        raise("Dimension pivots not initialized!")
+        raise Exception("Dimension pivots not initialized!")
     points = points - globalMeans
     points = np.round(points)
     ret = [0, 0]
     for point in points:
         ret[0] += point[0]**2
         ret[1] += point[1]**2
-    return (math.sqrt(ret[0]), 100+math.sqrt(ret[1]))
-      
-def InitializeGlobalMeans(dataSet):
+    return math.sqrt(ret[0]), 100+math.sqrt(ret[1])
+
+
+def initialize_global_means(data_set):
     global globalMeans, globalMaxes
-    globalMeans = np.average(dataSet, axis=0)
-    globalMaxes = np.absolute(np.amax(dataSet, axis=0))
+    globalMeans = np.average(data_set, axis=0)
+    globalMaxes = np.absolute(np.amax(data_set, axis=0))
     return
 
+
 def isValid(x):
-	global globalMeans
-	if globalMeans is None: return True
-	return np.array(x).shape[0] == globalMeans.shape[0]
-	
-def model_viz(path, isModelDir=False):
+    global globalMeans
+    if globalMeans is None: return True
+    return np.array(x).shape[0] == globalMeans.shape[0]
+
+
+def model_viz(path, is_model_dir=False):
     """Load training data set"""
     from dnssift.data.dns_tunneling import loader
     ds = loader.DataSet(MODEL_DATA_DIR)
     if len(ds.training_samples) == 0:
-        raise("Training dataset empty.\n")
+        raise Exception("Training data set empty.\n")
     training_samples_view = [feature_vec_cart_map(x[0], POLAR) for x in ds.training_samples]
-    test_samples_view = [feature_vec_cart_map(x[0], POLAR) for x in ds.test_samples if isValid(x[0])]
-    InitializeGlobalMeans(training_samples_view)
+    initialize_global_means(training_samples_view)
     training_samples_view = [feature_vec_cart_map(x[0], POLAR) for x in ds.training_samples if isValid(x[0])]
     test_samples_view = [feature_vec_cart_map(x[0], POLAR) for x in ds.test_samples if isValid(x[0])]
     xs = []
@@ -85,9 +91,9 @@ def model_viz(path, isModelDir=False):
     plt.plot(xs, ys, c='g', zorder=10, linewidth=5.0)
     plt.scatter(test_xs, test_ys, zorder=21, s=100, c='r', edgecolors='r', marker='H') 
     plt.plot(test_xs, test_ys, zorder=20, c='r', linestyle='dotted')
-    viz_data = []
-    if path == None: return
-    if isModelDir:
+    if path is None:
+        return
+    if is_model_dir:
         viz_data = ds.loadDsDir(path, 'VIZ')
     else:
         viz_data = ds.loadDs(path, 'VIZ')
@@ -101,6 +107,7 @@ def model_viz(path, isModelDir=False):
     plt.plot(viz_data_xs, viz_data_ys, zorder=30, c='b', linestyle='dotted')
     plt.show()
     return
+
 
 if __name__ == '__main__':
     model_viz("/tmp/dnssift/datapoints.csv")

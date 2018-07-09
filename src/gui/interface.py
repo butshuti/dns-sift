@@ -2,6 +2,7 @@ from Tkinter import *
 import tkMessageBox, tkFileDialog, ttk
 from ttk import Progressbar, Separator, Treeview, Button, Style
 import dnssift.configutils as cfg, dnssift.data.dns_tunneling.loader as modelLoader
+import modelviz
 import os, time, threading, math, shutil
 from subprocess import Popen, PIPE, call
 from os import listdir, remove
@@ -11,7 +12,7 @@ CMD_LOG_FILE = "/tmp/dnssift/dnssift-interface-last.log"
 PLAY_MODES = ["STRICT", "PERMISSIVE", "LEARNING"]
 DEBUG_LEVELS = ["OFF", "WARN", "VERBOSE"]
 NET_INTERFACES = os.listdir('/sys/class/net/')
-NET_PORTS = {'DNS':53}
+NET_PORTS = {'DNS': 53}
 NET_PORTS.update(cfg.parseServices())
 configs = cfg.parseConf()
 
@@ -139,10 +140,10 @@ class App:
     return frame
   
   def testOnLoadedModel(self, sampleFile, isDir):
-    '''try:
+    try:
       modelviz.model_viz(sampleFile, isDir)
     except Exception as exc:
-      tkMessageBox.showinfo("Sorry!", exc)'''
+      tkMessageBox.showinfo("Sorry!", exc)
     return
   
   def populateModelTree(self):
